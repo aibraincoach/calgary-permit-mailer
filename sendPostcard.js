@@ -11,18 +11,6 @@ const SENDER_BRAND_LAST_NAME = '';
 const DISPLAY_POSTAL_FALLBACK = 'T2H 0A1';
 
 /**
- * Log full PostGrid JSON for debugging PDF field location (may be large).
- * @param {unknown} data Axios `response.data` body
- */
-function logPostgridPostcardResponseBody(data) {
-  try {
-    console.log('[PostGrid] POST /postcards full response body:', JSON.stringify(data, null, 2));
-  } catch {
-    console.log('[PostGrid] POST /postcards response (non-JSON-serializable):', util.inspect(data, { depth: 12, colors: false }));
-  }
-}
-
-/**
  * Collect string values that look like HTTP(S) URLs from a nested object.
  * @param {unknown} obj
  * @param {string} path
@@ -468,7 +456,11 @@ async function sendPostcard(body) {
     throw new Error(`PostGrid error: ${msg}`);
   }
 
-  logPostgridPostcardResponseBody(data);
+  try {
+    console.log('[PostGrid raw response]', JSON.stringify(data, null, 2));
+  } catch {
+    console.log('[PostGrid raw response]', util.inspect(data, { depth: 12, colors: false }));
+  }
 
   return data;
 }
