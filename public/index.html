@@ -17,7 +17,7 @@
   <header class="topbar">
     <div class="brand">
       <span class="brand-name">Calgary Permit Mailer</span>
-      <span class="brand-sub">Automated direct mail · Calgary Open Data</span>
+      <span class="brand-sub">YYC ProBuild · Open Data</span>
     </div>
     <span class="topbar-spacer" aria-hidden="true"></span>
     <div class="topbar-meta">
@@ -79,13 +79,6 @@
             <option value="cost_asc">Cost ↑</option>
             <option value="name">Name</option>
           </select>
-          <label class="sr-only" for="limit-select">Fetch limit</label>
-          <select id="limit-select" aria-label="Number of permits to load from Open Data">
-            <option value="25">25</option>
-            <option value="50" selected>50</option>
-            <option value="100">100</option>
-            <option value="all">All</option>
-          </select>
           <span class="toolbar-meta" id="toolbar-meta"><strong>0</strong> in view</span>
         </div>
 
@@ -94,18 +87,15 @@
     </div>
 
     <aside class="side">
-        <div class="card">
+      <div class="card">
         <div class="card-head">
-          <div>
-            <h2 class="card-title">Permit detail</h2>
-            <p class="card-meta" id="detail-card-meta"></p>
-          </div>
-          <button type="button" class="btn btn-ghost" id="detail-close" aria-label="Close detail">×</button>
+          <h2 class="card-title">Permit detail</h2>
+          <p class="card-meta" id="detail-card-meta"></p>
         </div>
         <div class="side-card">
           <div class="detail-empty" id="detail-empty">
             <h3>No permit selected</h3>
-            <p>Click a row to see full fields.</p>
+            <p>Click a row in the feed to see full fields from Open Data.</p>
           </div>
           <div class="detail hidden" id="detail-root" aria-live="polite">
             <h2 class="detail-name" id="detail-name"></h2>
@@ -126,10 +116,7 @@
         </div>
         <div class="side-card">
           <h2>Launch</h2>
-          <p class="lede">
-            Select permits from the feed, generate personalized postcard copy via GPT-4o-mini, and optionally send physical
-            postcards via PostGrid.
-          </p>
+          <p class="lede">Generate copy for each selected permit. Optional live send uses PostGrid env vars.</p>
 
           <div class="summary-block">
             <div class="summary-row">
@@ -137,7 +124,7 @@
               <span class="value" id="summary-selected">0</span>
             </div>
             <div class="summary-row">
-              <span class="label">PostGrid send</span>
+              <span class="label">Live postcard send</span>
               <span class="value" id="summary-send-label">Off</span>
             </div>
           </div>
@@ -150,7 +137,7 @@
             </span>
           </label>
 
-          <button type="button" class="btn btn-primary btn-block" id="btn-launch" disabled>Select permits to continue</button>
+          <button type="button" class="btn btn-primary btn-block" id="btn-launch" disabled>Launch pipeline</button>
           <p class="help-text" id="run-help">
             Select at least one permit. The backend expects full permit objects in the request body (unchanged contract).
           </p>
@@ -189,7 +176,6 @@
       var sortKey = 'newest';
       var searchQ = '';
       var statusByPermit = {};
-      var permitLimitChoice = '50';
 
       var feedScroll = document.getElementById('feed-scroll');
       var feedStatus = document.getElementById('feed-status');
@@ -203,7 +189,6 @@
       var btnSelectNone = document.getElementById('btn-select-none');
       var searchInput = document.getElementById('search-input');
       var sortSelect = document.getElementById('sort-select');
-      var limitSelect = document.getElementById('limit-select');
       var chipAll = document.getElementById('chip-all');
       var chipNew = document.getElementById('chip-new');
       var chipImprovement = document.getElementById('chip-improvement');
@@ -216,7 +201,6 @@
       var detailGrid = document.getElementById('detail-grid');
       var detailRaw = document.getElementById('detail-raw');
       var detailCardMeta = document.getElementById('detail-card-meta');
-      var detailClose = document.getElementById('detail-close');
       var summarySelected = document.getElementById('summary-selected');
       var summarySendLabel = document.getElementById('summary-send-label');
       var sendInput = document.getElementById('send');
@@ -434,24 +418,12 @@
         }
       }
 
-      function updateLaunchButtonLabel() {
-        var n = selectedCount();
-        if (n === 0) {
-          btnLaunch.textContent = 'Select permits to continue';
-        } else if (n === 1) {
-          btnLaunch.textContent = 'Generate copy for 1 permit';
-        } else {
-          btnLaunch.textContent = 'Generate copy for ' + n + ' permits';
-        }
-      }
-
       function updateSelbar() {
         var n = selectedCount();
         selCount.textContent = String(n);
         selbar.classList.toggle('has-selection', n > 0);
         summarySelected.textContent = String(n);
         btnLaunch.disabled = n === 0;
-        updateLaunchButtonLabel();
         btnSelectVisible.disabled = !filtered.length;
         btnSelectNone.disabled = n === 0;
         syncSelectAllCb();
@@ -526,14 +498,6 @@
         renderDetail(idx);
       }
 
-      function toggleDetail(idx) {
-        if (detailIdx === idx) {
-          openDetail(null);
-        } else {
-          openDetail(idx);
-        }
-      }
-
       function rowStatusLine(idx) {
         var p = allPermits[idx];
         var key = p && p.permitnum != null ? String(p.permitnum) : '';
@@ -596,14 +560,12 @@
           cb.type = 'checkbox';
           cb.className = 'cb';
           cb.setAttribute('aria-label', 'Select ' + (p.permitnum || 'permit'));
-          cb.setAttribute('data-idx', String(idx));
           cb.checked = isIndexSelected(idx);
           cb.addEventListener('click', function (e) {
             e.stopPropagation();
           });
           cb.addEventListener('change', function () {
-            var iix = parseInt(this.getAttribute('data-idx'), 10);
-            setSelected(iix, this.checked);
+            setSelected(idx, cb.checked);
             updateSelbar();
             renderFeed();
           });
@@ -615,16 +577,7 @@
           nm.textContent = (p.contractorname || '').trim() || 'Unknown contractor';
           var rid = document.createElement('div');
           rid.className = 'row-id';
-          var pn = p.permitnum || '—';
-          rid.appendChild(document.createTextNode(pn));
-          var pkey = p.permitnum != null ? String(p.permitnum) : '';
-          if (pkey && statusByPermit[pkey] === 'Postcard Sent') {
-            rid.appendChild(document.createTextNode(' '));
-            var sentBadge = document.createElement('span');
-            sentBadge.className = 'badge b-new';
-            sentBadge.textContent = '✓ Sent';
-            rid.appendChild(sentBadge);
-          }
+          rid.textContent = p.permitnum || '—';
           main.appendChild(nm);
           main.appendChild(rid);
 
@@ -659,10 +612,8 @@
           row.appendChild(costCol);
           row.appendChild(badge);
 
-          row.addEventListener('click', function (e) {
-            e.stopPropagation();
-            var rowIdx = parseInt(row.getAttribute('data-idx'), 10);
-            toggleDetail(rowIdx);
+          row.addEventListener('click', function () {
+            openDetail(idx);
             renderFeed();
           });
 
@@ -728,9 +679,7 @@
       function loadPermits() {
         setFeedState('loading', 'Loading permits…');
         showSkeleton();
-        var lim = limitSelect ? limitSelect.value : permitLimitChoice;
-        permitLimitChoice = lim;
-        fetch('/permits?limit=' + encodeURIComponent(lim))
+        fetch('/permits')
           .then(function (r) {
             return r.json().then(function (j) {
               return { ok: r.ok, j: j, status: r.status };
@@ -746,11 +695,7 @@
             allPermits = x.j;
             statusByPermit = {};
             clearSelection();
-            var limLabel = lim === 'all' ? 'all' : lim;
-            setFeedState(
-              'ok',
-              String(allPermits.length) + ' loaded · last 14d · limit ' + limLabel,
-            );
+            setFeedState('ok', String(allPermits.length) + ' permits · last 14d · cap 25');
             refresh();
             openDetail(null);
           })
@@ -772,24 +717,6 @@
         summarySendLabel.textContent = sendInput.checked ? 'On' : 'Off';
       }
 
-      function estimateFootCost(rows, sendOn) {
-        var tokens = 0;
-        var sent = 0;
-        for (var i = 0; i < rows.length; i++) {
-          var r = rows[i];
-          tokens += Math.max(200, (r.copy || '').length * 3.5);
-          if (sendOn && r.postcardStatus === 'Postcard Sent') sent++;
-        }
-        return tokens * 0.00015 + sent * 0.85;
-      }
-
-      function modalStatusLabel(row) {
-        if (row.postcardStatus === 'Postcard Sent') return { cls: 'sent', text: 'Sent' };
-        if (row.postcardStatus === 'Failed') return { cls: 'error', text: 'Failed' };
-        if (row.postcardStatus === 'Copy Generated') return { cls: 'queued', text: 'Copy only' };
-        return { cls: 'queued', text: row.postcardStatus || '—' };
-      }
-
       function setModalProgress(done, total, text) {
         var pct = total ? Math.round((done / total) * 100) : 0;
         progressFill.style.width = pct + '%';
@@ -808,21 +735,23 @@
             var copy = truncatePostcardCopy(row.copy || '', 300);
             copyEl.textContent = copy || '(No copy)';
             copyEl.classList.remove('hidden');
-            var lab = modalStatusLabel(row);
-            statusEl.className = 'status ' + lab.cls;
-            statusEl.textContent = lab.text;
+            statusEl.className =
+              'status ' +
+              (row.postcardStatus === 'Postcard Sent'
+                ? 'sent'
+                : row.postcardStatus === 'Failed'
+                  ? 'error'
+                  : 'queued');
+            statusEl.textContent = row.postcardStatus || '—';
             resolve();
           }, delay);
         });
       }
 
       async function runPipelineUi(permitsPayload) {
-        var sendOn = sendInput.checked;
         modalList.innerHTML = '';
-        var total = permitsPayload.length;
-        modalFootSummary.innerHTML =
-          '<strong>0</strong> of <strong>' + total + '</strong> complete · ~$0.00 est. cost';
-        setModalProgress(0, total, 'Generating copy…');
+        modalFootSummary.innerHTML = '<strong>' + permitsPayload.length + '</strong> permits';
+        setModalProgress(0, permitsPayload.length, 'Running…');
         for (var i = 0; i < permitsPayload.length; i++) {
           var p = permitsPayload[i];
           var mr = document.createElement('div');
@@ -838,7 +767,7 @@
             '<div class="meta">' +
             escapeHtml(p.permitnum || '') +
             '</div></div>' +
-            '<div class="status running">Working…</div>';
+            '<div class="status running">Running</div>';
           modalList.appendChild(mr);
         }
 
@@ -847,7 +776,7 @@
           res = await fetch('/run', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ permits: permitsPayload, send: sendOn }),
+            body: JSON.stringify({ permits: permitsPayload, send: sendInput.checked }),
           });
         } catch (err) {
           modalProgressText.textContent = 'Network error: ' + (err.message || String(err));
@@ -872,26 +801,7 @@
           var el = modalList.children[j];
           if (el) await applyResultRow(el, row, 55 * j);
           setModalProgress(j + 1, data.length, 'Processed ' + (j + 1) + ' of ' + data.length);
-          var slice = data.slice(0, j + 1);
-          var est = estimateFootCost(slice, sendOn);
-          modalFootSummary.innerHTML =
-            '<strong>' +
-            (j + 1) +
-            '</strong> of <strong>' +
-            data.length +
-            '</strong> complete · ~$' +
-            est.toFixed(2) +
-            ' est. cost';
         }
-        var finalEst = estimateFootCost(data, sendOn);
-        modalFootSummary.innerHTML =
-          '<strong>' +
-          data.length +
-          '</strong> of <strong>' +
-          data.length +
-          '</strong> complete · ~$' +
-          finalEst.toFixed(2) +
-          ' est. cost';
         modalProgressText.textContent = 'Complete';
       }
 
@@ -938,21 +848,6 @@
         refresh();
       });
 
-      limitSelect.addEventListener('change', function () {
-        permitLimitChoice = limitSelect.value;
-        loadPermits();
-      });
-
-      feedScroll.addEventListener('click', function () {
-        openDetail(null);
-        renderFeed();
-      });
-
-      detailClose.addEventListener('click', function () {
-        openDetail(null);
-        renderFeed();
-      });
-
       bindChip(chipAll, 'all');
       bindChip(chipNew, 'new');
       bindChip(chipImprovement, 'improvement');
@@ -965,8 +860,7 @@
       btnLaunch.addEventListener('click', function () {
         var indices = [];
         for (var k in selected) {
-          var ni = Number(k);
-          if (Number.isFinite(ni)) indices.push(ni);
+          if (selected[k]) indices.push(Number(k));
         }
         indices.sort(function (a, b) {
           return a - b;
@@ -995,7 +889,6 @@
       tickClock();
       setInterval(tickClock, 1000);
       setChipsUi();
-      updateLaunchButtonLabel();
       loadPermits();
     })();
   </script>
