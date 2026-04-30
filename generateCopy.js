@@ -47,7 +47,7 @@ async function generateCopy(permit) {
     workVaguePhrase: workVague,
   };
 
-  const userContent = `Write the full text for a small postcard (YYC ProBuild, Calgary construction supply).
+  const userContent = `Write the full text for a small postcard (sender brand: AI Brain Coach, Calgary area).
 
 Context for you only (do NOT paste field names, JSON, permit IDs, costs, or street addresses into the postcard):
 ${JSON.stringify(hints, null, 2)}
@@ -60,13 +60,13 @@ Rules for the postcard text itself:
 - NEVER quote the project's written description; stay vague on scope (use the suggested work vibe only: new build, renovation, addition, demolition, or "your project").
 - Opening: if a contractor/company name is provided in the hints, greet them naturally (e.g. "Hi Porch Lamp Fine Homes,"). If the name is empty, start with exactly: Hi there,
 - Optionally weave in the neighbourhood name in a casual way if it is non-empty (e.g. "in Brentwood?"). If neighbourhood is empty, skip location names entirely.
-- One short line that YYC ProBuild supplies local contractors across Calgary (plain words, no jargon).
-- End with this exact sentence as its own closing line: Call us for a free quote.
+- One short line that naturally mentions AI Brain Coach as a Calgary-area resource for contractors (plain words, no jargon).
+- End with this exact sentence as its own closing line: Call AI Brain Coach for a free consultation.
 - At most 4 sentences total (including the greeting and the closing line).
 - Under 200 characters total, including spaces and punctuation. Plain text only — no markdown, no bullets, no labels like "Line 1:".
 
 Good tone example (length and vibe only; do not copy verbatim):
-"Hi Porch Lamp Fine Homes, working on a new build in Brentwood? YYC ProBuild supplies local contractors across Calgary. Call us for a free quote."
+"Hi Porch Lamp Fine Homes, working on a new build in Brentwood? AI Brain Coach helps contractors across Calgary. Call AI Brain Coach for a free consultation."
 
 Bad (never do this): mentioning permit numbers, dollar figures, full street addresses, or "we know about your project."`;
 
@@ -78,7 +78,7 @@ Bad (never do this): mentioning permit numbers, dollar figures, full street addr
         {
           role: 'system',
           content:
-            'You write very short, warm postcard blurbs for YYC ProBuild in Calgary. You refuse to sound creepy, data-driven, or surveillance-like. You follow the user rules exactly and output only the postcard body text.',
+            'You write very short, warm postcard blurbs for AI Brain Coach in Calgary. You refuse to sound creepy, data-driven, or surveillance-like. You follow the user rules exactly and output only the postcard body text.',
         },
         { role: 'user', content: userContent },
       ],

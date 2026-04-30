@@ -1,13 +1,18 @@
 const { fetchPermits } = require('./fetchPermits');
 const { generateCopy } = require('./generateCopy');
-const { sendPostcard, recipientFromPermit } = require('./sendPostcard');
+const {
+  sendPostcard,
+  recipientFromPermit,
+  SENDER_BRAND_FIRST_NAME,
+  SENDER_BRAND_LAST_NAME,
+} = require('./sendPostcard');
 
 function senderFromEnv() {
   const line1 = process.env.POSTGRID_FROM_ADDRESS_LINE1;
   if (!line1) return undefined;
   return {
-    firstName: process.env.POSTGRID_FROM_FIRST_NAME || 'Sender',
-    lastName: process.env.POSTGRID_FROM_LAST_NAME || '',
+    firstName: process.env.POSTGRID_FROM_FIRST_NAME || SENDER_BRAND_FIRST_NAME,
+    lastName: process.env.POSTGRID_FROM_LAST_NAME || SENDER_BRAND_LAST_NAME,
     addressLine1: line1,
     addressLine2: process.env.POSTGRID_FROM_ADDRESS_LINE2 || undefined,
     city: process.env.POSTGRID_FROM_CITY,
@@ -41,7 +46,7 @@ function copyToFrontHtml(copy) {
 
 function defaultBackHtml() {
   return `<!DOCTYPE html><html><body style="margin:0;padding:24px;font-family:Arial,sans-serif;">
-  <p style="font-size:12px;color:#555;">YYC ProBuild — Calgary construction supply partner.</p>
+  <p style="font-size:12px;color:#555;">AI Brain Coach — Calgary-area contractor outreach.</p>
 </body></html>`;
 }
 
