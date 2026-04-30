@@ -3,6 +3,10 @@ const axios = require('axios');
 const DEFAULT_BASE =
   process.env.POSTGRID_API_BASE || 'https://api.postgrid.com/print-mail/v1';
 
+/** Default PostGrid `from` name when POSTGRID_FROM_FIRST_NAME is unset. */
+const SENDER_BRAND_FIRST_NAME = 'AI Brain Coach';
+const SENDER_BRAND_LAST_NAME = '';
+
 /**
  * Build PostGrid recipient `to` from fields on the permit only.
  * Returns null if there is no site address on the record (no fallbacks).
@@ -89,4 +93,10 @@ async function sendPostcard(body) {
   return data;
 }
 
-module.exports = { sendPostcard, DEFAULT_BASE, recipientFromPermit };
+module.exports = {
+  sendPostcard,
+  DEFAULT_BASE,
+  recipientFromPermit,
+  SENDER_BRAND_FIRST_NAME,
+  SENDER_BRAND_LAST_NAME,
+};
