@@ -17,6 +17,39 @@
       },
     };
   </script>
+  <style>
+    #detail-backdrop {
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+    #detail-backdrop.is-open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    #detail-panel {
+      transition: transform 0.28s ease;
+      pointer-events: none;
+    }
+    @media (max-width: 1023px) {
+      #detail-panel {
+        transform: translateY(100%);
+      }
+      #detail-panel.is-open {
+        transform: translateY(0);
+        pointer-events: auto;
+      }
+    }
+    @media (min-width: 1024px) {
+      #detail-panel {
+        transform: translateX(100%);
+      }
+      #detail-panel.is-open {
+        transform: translateX(0);
+        pointer-events: auto;
+      }
+    }
+  </style>
 </head>
 <body class="min-h-screen bg-surface text-slate-200 antialiased">
   <div class="mx-auto max-w-[1400px] px-4 py-6 sm:px-6 lg:px-8">
@@ -93,21 +126,56 @@
         </div>
       </section>
 
-      <!-- Right: results -->
-      <section class="flex min-h-0 flex-col rounded-xl border border-surface-border bg-surface-card shadow-xl">
+      <!-- Right: results + permit detail overlay -->
+      <section
+        id="results-section"
+        class="relative flex min-h-0 flex-col overflow-hidden rounded-xl border border-surface-border bg-surface-card shadow-xl"
+      >
         <div class="border-b border-surface-border px-4 py-3">
           <h2 class="text-lg font-medium text-white">Pipeline results</h2>
           <p class="mt-1 text-sm text-slate-500">Generated copy and mail status for the selected permits.</p>
         </div>
-        <div class="min-h-[280px] max-h-[min(70vh,640px)] overflow-y-auto p-4">
+        <div
+          id="results-inner"
+          class="relative min-h-[280px] max-h-[min(70vh,640px)] flex-1 overflow-y-auto p-4"
+        >
           <div
             id="results-empty"
             class="rounded-lg border border-dashed border-surface-border bg-surface/40 p-10 text-center text-slate-500"
           >
-            Select one or more permits and click Run Pipeline to see results here.
+            Select one or more permits and click Run Pipeline to see results here. Click a table row (not the checkbox) to view full permit data.
           </div>
           <div id="results-list" class="hidden space-y-4"></div>
         </div>
+        <!-- Mobile dim behind bottom sheet -->
+        <div
+          id="detail-backdrop"
+          class="fixed inset-0 z-[35] bg-black/55 lg:hidden"
+          aria-hidden="true"
+        ></div>
+        <aside
+          id="detail-panel"
+          class="fixed bottom-0 left-0 right-0 z-40 flex max-h-[88vh] flex-col rounded-t-2xl border border-surface-border border-b-0 bg-[#0d1218] shadow-2xl lg:absolute lg:inset-y-0 lg:left-auto lg:right-0 lg:max-h-none lg:h-full lg:w-full lg:max-w-md lg:rounded-none lg:border-b lg:border-l lg:border-t-0"
+          aria-hidden="true"
+        >
+          <div
+            class="flex shrink-0 items-center justify-between gap-3 border-b border-surface-border px-4 py-3"
+          >
+            <div class="min-w-0">
+              <h3 class="truncate text-base font-semibold text-white">Permit details</h3>
+              <p id="detail-subtitle" class="truncate font-mono text-xs text-slate-500"></p>
+            </div>
+            <button
+              type="button"
+              id="detail-close"
+              class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-surface-border text-slate-400 transition hover:bg-white/5 hover:text-white"
+              aria-label="Close permit details"
+            >
+              <span class="text-xl leading-none" aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div id="detail-body" class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4"></div>
+        </aside>
       </section>
     </div>
   </div>
@@ -124,11 +192,17 @@
       const resultsEmpty = document.getElementById('results-empty');
       const resultsList = document.getElementById('results-list');
       const resultsError = document.getElementById('results-error');
+      const detailPanel = document.getElementById('detail-panel');
+      const detailBackdrop = document.getElementById('detail-backdrop');
+      const detailBody = document.getElementById('detail-body');
+      const detailClose = document.getElementById('detail-close');
+      const detailSubtitle = document.getElementById('detail-subtitle');
 
       /** @type {object[]} */
       let allPermits = [];
       /** @type {Set<number>} */
       const selected = new Set();
+      let detailIdx = null;
 
       function setStatus(state) {
         indicatorLabel.textContent =
@@ -143,7 +217,7 @@
         }
       }
 
-      function updateSelectedUi() {
+      function updateRowClasses() {
         const n = selected.size;
         selectedCountEl.textContent =
           n === 1 ? '1 permit selected' : n + ' permits selected';
@@ -151,10 +225,14 @@
         permitsTbody.querySelectorAll('tr[data-idx]').forEach(function (tr) {
           const idx = parseInt(tr.getAttribute('data-idx'), 10);
           const on = selected.has(idx);
+          const detail = detailIdx === idx;
           tr.classList.toggle('bg-sky-500/10', on);
           tr.classList.toggle('ring-1', on);
           tr.classList.toggle('ring-inset', on);
           tr.classList.toggle('ring-sky-500/30', on);
+          tr.classList.toggle('border-l-4', detail);
+          tr.classList.toggle('border-l-amber-400', detail);
+          tr.classList.toggle('bg-amber-500/[0.07]', detail);
           const cb = tr.querySelector('input[type="checkbox"]');
           if (cb) cb.checked = on;
         });
@@ -163,7 +241,7 @@
       function toggleIndex(idx) {
         if (selected.has(idx)) selected.delete(idx);
         else selected.add(idx);
-        updateSelectedUi();
+        updateRowClasses();
       }
 
       function escapeHtml(s) {
@@ -200,12 +278,164 @@
         );
       }
 
+      function contractorPhone(p) {
+        const keys = [
+          'contractorphone',
+          'contractor_phone',
+          'contractorphonenumber',
+          'applicantphone',
+          'phone',
+        ];
+        for (let i = 0; i < keys.length; i++) {
+          const k = keys[i];
+          const v = p[k];
+          if (v != null && String(v).trim() !== '') return String(v);
+        }
+        return '';
+      }
+
+      function fullAddressLines(p) {
+        const lines = [];
+        if (p.originaladdress) lines.push(String(p.originaladdress));
+        if (p.locationaddresses && p.locationaddresses !== p.originaladdress) {
+          lines.push(String(p.locationaddresses));
+        }
+        return lines;
+      }
+
+      function latLongText(p) {
+        if (p.point && Array.isArray(p.point.coordinates) && p.point.coordinates.length >= 2) {
+          const lng = p.point.coordinates[0];
+          const lat = p.point.coordinates[1];
+          return lat + ', ' + lng + ' (GeoJSON point)';
+        }
+        if (p.latitude != null && p.longitude != null) {
+          return String(p.latitude) + ', ' + String(p.longitude);
+        }
+        return '';
+      }
+
+      function formatDetailValue(v) {
+        if (v == null || v === '') return '<span class="text-slate-500">—</span>';
+        if (typeof v === 'object') {
+          return (
+            '<pre class="mt-1 max-h-48 overflow-auto rounded border border-surface-border bg-black/25 p-2 font-mono text-[11px] leading-relaxed text-slate-300">' +
+            escapeHtml(JSON.stringify(v, null, 2)) +
+            '</pre>'
+          );
+        }
+        return '<span class="text-slate-200">' + escapeHtml(String(v)) + '</span>';
+      }
+
+      function detailDlRow(label, innerHtml) {
+        return (
+          '<div class="border-b border-surface-border py-2.5 sm:grid sm:grid-cols-3 sm:gap-2">' +
+          '<dt class="text-xs font-medium uppercase tracking-wide text-slate-500">' +
+          escapeHtml(label) +
+          '</dt>' +
+          '<dd class="mt-0.5 min-w-0 text-sm sm:col-span-2 sm:mt-0">' +
+          innerHtml +
+          '</dd>' +
+          '</div>'
+        );
+      }
+
+      function renderDetailHtml(p) {
+        const phone = contractorPhone(p);
+        const phoneHtml = phone
+          ? escapeHtml(phone)
+          : '<span class="text-slate-500">Not in this Open Data dataset</span>';
+        const owner = p.applicantname || p.ownername || '';
+        const ownerHtml = owner
+          ? escapeHtml(String(owner))
+          : '<span class="text-slate-500">—</span>';
+        const addrLines = fullAddressLines(p);
+        const addrHtml =
+          addrLines.length > 0
+            ? addrLines.map(function (line) {
+                return escapeHtml(line);
+              }).join('<br/>')
+            : '<span class="text-slate-500">—</span>';
+        const community =
+          [p.communityname, p.communitycode].filter(Boolean).join(' · ') || '';
+        const latlng = latLongText(p);
+        const latlngHtml = latlng
+          ? escapeHtml(latlng)
+          : '<span class="text-slate-500">—</span>';
+        const units =
+          p.housingunits != null && p.housingunits !== ''
+            ? escapeHtml(String(p.housingunits))
+            : '<span class="text-slate-500">—</span>';
+
+        let primary =
+          '<div class="rounded-lg border border-surface-border bg-surface/40">' +
+          detailDlRow('Permit number', formatDetailValue(p.permitnum)) +
+          detailDlRow('Status', formatDetailValue(p.statuscurrent)) +
+          detailDlRow('Applied date', formatDate(p.applieddate)) +
+          detailDlRow('Issued date', formatDate(p.issueddate)) +
+          detailDlRow('Completed date', formatDate(p.completeddate)) +
+          detailDlRow('Contractor name', formatDetailValue(p.contractorname)) +
+          detailDlRow('Contractor phone', phoneHtml) +
+          detailDlRow('Applicant / owner name', ownerHtml) +
+          detailDlRow('Address (full)', addrHtml) +
+          detailDlRow('Community / neighbourhood', formatDetailValue(community)) +
+          detailDlRow('Work class group', formatDetailValue(p.workclassgroup)) +
+          detailDlRow('Description of work', formatDetailValue(p.description)) +
+          detailDlRow('Estimated project cost', formatMoney(p.estprojectcost)) +
+          detailDlRow('Number of units', units) +
+          detailDlRow('Location (lat / long)', latlngHtml) +
+          '</div>';
+
+        const keys = Object.keys(p).sort();
+        let allRows = '';
+        keys.forEach(function (k) {
+          allRows += detailDlRow(k, formatDetailValue(p[k]));
+        });
+
+        primary +=
+          '<h4 class="mb-2 mt-8 text-xs font-semibold uppercase tracking-wide text-slate-500">All fields (raw record)</h4>' +
+          '<div class="rounded-lg border border-surface-border bg-surface/30">' +
+          allRows +
+          '</div>';
+        return primary;
+      }
+
+      function closeDetail() {
+        detailIdx = null;
+        detailPanel.classList.remove('is-open');
+        detailBackdrop.classList.remove('is-open');
+        detailBody.innerHTML = '';
+        detailSubtitle.textContent = '';
+        detailPanel.setAttribute('aria-hidden', 'true');
+        detailBackdrop.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('overflow-hidden');
+        updateRowClasses();
+      }
+
+      function openDetail(idx) {
+        if (idx < 0 || idx >= allPermits.length) return;
+        detailIdx = idx;
+        const p = allPermits[idx];
+        detailSubtitle.textContent = p.permitnum || '';
+        detailBody.innerHTML = renderDetailHtml(p);
+        detailPanel.classList.add('is-open');
+        detailBackdrop.classList.add('is-open');
+        detailPanel.setAttribute('aria-hidden', 'false');
+        detailBackdrop.setAttribute('aria-hidden', 'false');
+        if (window.matchMedia('(max-width: 1023px)').matches) {
+          document.body.classList.add('overflow-hidden');
+        }
+        updateRowClasses();
+      }
+
       function renderPermitTable(permits) {
+        closeDetail();
         permitsTbody.innerHTML = '';
         selected.clear();
         permits.forEach(function (p, idx) {
           const tr = document.createElement('tr');
-          tr.className = 'border-b border-surface-border text-slate-300 transition hover:bg-white/5';
+          tr.className =
+            'cursor-pointer border-b border-surface-border text-slate-300 transition hover:bg-white/5';
           tr.setAttribute('data-idx', String(idx));
 
           const permitnum = escapeHtml(p.permitnum || '—');
@@ -216,8 +446,8 @@
           const applied = formatDate(p.applieddate);
 
           tr.innerHTML =
-            '<td class="px-3 py-2 align-middle">' +
-            '<input type="checkbox" class="perm-cb h-4 w-4 rounded border-surface-border bg-surface text-accent focus:ring-accent" aria-label="Select permit ' +
+            '<td class="cursor-default px-3 py-2 align-middle" data-cb-cell="1">' +
+            '<input type="checkbox" class="perm-cb h-4 w-4 cursor-pointer rounded border-surface-border bg-surface text-accent focus:ring-accent" aria-label="Select permit ' +
             permitnum +
             '" />' +
             '</td>' +
@@ -254,12 +484,12 @@
           });
           tr.addEventListener('click', function (e) {
             if (e.target.closest('.perm-cb')) return;
-            toggleIndex(idx);
+            openDetail(idx);
           });
 
           permitsTbody.appendChild(tr);
         });
-        updateSelectedUi();
+        updateRowClasses();
       }
 
       async function loadPermits() {
@@ -293,7 +523,7 @@
           permitsLoadMsg.textContent = e.message || String(e);
           permitsLoadMsg.classList.remove('text-slate-500');
           permitsLoadMsg.classList.add('text-red-400');
-          updateSelectedUi();
+          updateRowClasses();
         }
       }
 
@@ -350,6 +580,7 @@
       runBtn.addEventListener('click', async function () {
         resultsError.classList.add('hidden');
         resultsError.textContent = '';
+        closeDetail();
 
         const indices = Array.from(selected).sort(function (a, b) {
           return a - b;
@@ -406,7 +637,19 @@
           resultsError.classList.remove('hidden');
           setStatus('idle');
         } finally {
-          updateSelectedUi();
+          updateRowClasses();
+        }
+      });
+
+      detailClose.addEventListener('click', function () {
+        closeDetail();
+      });
+      detailBackdrop.addEventListener('click', function () {
+        closeDetail();
+      });
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && detailIdx !== null) {
+          closeDetail();
         }
       });
 

@@ -30,7 +30,7 @@ const DEFAULT_DATASET =
  * @param {number} [opts.daysBack] If set, adds $where issueddate >= ...
  * @param {string} [opts.where] Raw SoQL $where (overrides daysBack)
  * @param {string} [opts.order] SoQL $order, default issueddate DESC
- * @returns {Promise<CalgaryBuildingPermit[]>}
+ * @returns {Promise<CalgaryBuildingPermit[]>} Full JSON objects from Socrata (no $select projection — every column the API returns per row).
  */
 async function fetchPermits(opts = {}) {
   const baseUrl = opts.baseUrl || DEFAULT_DATASET;
