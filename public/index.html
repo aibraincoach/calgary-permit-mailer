@@ -6,214 +6,1339 @@
   <title>Calgary Permit Mailer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&amp;display=swap"
-    rel="stylesheet"
-  />
-  <link rel="stylesheet" href="/styles.css" />
-  <link rel="stylesheet" href="/styles-list.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;600&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #080808;
+      --surface: #111111;
+      --border: #222222;
+      --text: #f0f0f0;
+      --muted: #666666;
+      --accent: #ff2d2d;
+      --accent-soft: #ff6b6b;
+      --cyan: #00d4ff;
+      --success: #00ff88;
+      --card-shadow: 0 0 0 1px #222222, 0 4px 24px rgba(0, 0, 0, 0.4);
+      --radius: 12px;
+      --font-sans: "Inter", system-ui, sans-serif;
+      --font-mono: "JetBrains Mono", ui-monospace, monospace;
+      --font-hand: "Caveat", cursive;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+      background-size: 56px 56px;
+      mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 20%, transparent 75%);
+    }
+
+    .app { position: relative; z-index: 1; }
+
+    .hidden { display: none !important; }
+
+    /* Header */
+    .top-header {
+      width: 100%;
+      background: linear-gradient(180deg, #0c0c0c 0%, #080808 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 0.75rem 1.25rem;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 1rem;
+    }
+    @media (max-width: 1100px) {
+      .top-header { grid-template-columns: 1fr; text-align: center; }
+      .pipeline-visual { order: 3; justify-content: center; flex-wrap: wrap; }
+      .header-clock { justify-self: center !important; }
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .logo-mark {
+      width: 14px;
+      height: 14px;
+      background: var(--accent);
+      border-radius: 3px;
+      box-shadow: 0 0 16px rgba(255, 45, 45, 0.65);
+      flex-shrink: 0;
+    }
+    .brand-title {
+      font-weight: 800;
+      font-size: 1.05rem;
+      letter-spacing: -0.02em;
+      color: #fff;
+    }
+
+    .pipeline-visual {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.35rem;
+      font-size: 0.68rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .p-step {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.35rem 0.5rem;
+      border-radius: 8px;
+      transition: color 0.3s, text-shadow 0.3s, background 0.3s;
+      white-space: nowrap;
+    }
+    .p-step.active {
+      color: var(--cyan);
+      text-shadow: 0 0 12px rgba(0, 212, 255, 0.45);
+      background: rgba(0, 212, 255, 0.06);
+    }
+    .p-step.done {
+      color: var(--success);
+      text-shadow: 0 0 10px rgba(0, 255, 136, 0.35);
+    }
+    .p-conn {
+      display: flex;
+      align-items: center;
+      color: var(--muted);
+      opacity: 0.5;
+    }
+    .p-conn .dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--muted);
+      box-shadow: 0 0 0 1px var(--border);
+    }
+    .p-conn .line {
+      width: 18px;
+      height: 1px;
+      background: linear-gradient(90deg, var(--muted), var(--cyan));
+      margin-left: 2px;
+    }
+    .p-conn.pulse .dot {
+      background: var(--cyan);
+      box-shadow: 0 0 10px var(--cyan);
+      animation: connPulse 1.2s ease-in-out infinite;
+    }
+    .p-conn.pulse .line {
+      opacity: 1;
+      background: linear-gradient(90deg, var(--cyan), var(--accent));
+    }
+    @keyframes connPulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.3); opacity: 0.85; }
+    }
+
+    .header-clock {
+      justify-self: end;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+    .clock-time {
+      font-family: var(--font-mono);
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .clock-tz {
+      font-size: 0.7rem;
+      color: var(--muted);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .header-glow-line {
+      height: 1px;
+      width: 100%;
+      background: linear-gradient(90deg, transparent, var(--accent), var(--accent-soft), transparent);
+      box-shadow: 0 0 12px rgba(255, 45, 45, 0.8), 0 0 28px rgba(255, 45, 45, 0.35);
+    }
+
+    /* Marquee */
+    .marquee-wrap {
+      overflow: hidden;
+      border-bottom: 1px solid var(--border);
+      background: #0a0a0a;
+      padding: 0.45rem 0;
+    }
+    .marquee {
+      display: flex;
+      width: max-content;
+      animation: marquee 48s linear infinite;
+    }
+    .marquee span {
+      padding: 0 2rem;
+      font-size: 0.72rem;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    @keyframes marquee {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+
+    /* Main grid */
+    .main-grid {
+      display: grid;
+      grid-template-columns: minmax(280px, 1fr) minmax(300px, 1.1fr) minmax(280px, 1fr);
+      gap: 1rem;
+      padding: 1rem 1.25rem 2rem;
+      max-width: 1680px;
+      margin: 0 auto;
+    }
+    @media (max-width: 1200px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--card-shadow);
+      display: flex;
+      flex-direction: column;
+      min-height: 420px;
+      max-height: min(78vh, 820px);
+      overflow: hidden;
+    }
+    .panel-head {
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .panel-kicker {
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      color: var(--muted);
+      margin: 0 0 0.35rem;
+    }
+    .panel-sub {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin: 0;
+    }
+    .panel-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0.75rem;
+      min-height: 0;
+    }
+
+    .live-dot {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      margin-right: 6px;
+      vertical-align: middle;
+      box-shadow: 0 0 10px var(--accent);
+      animation: liveDot 1.5s ease-in-out infinite;
+    }
+    @keyframes liveDot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.55; transform: scale(0.85); }
+    }
+
+    /* Skeleton */
+    .skeleton-stack { display: flex; flex-direction: column; gap: 0.65rem; }
+    .sk-card {
+      height: 88px;
+      border-radius: var(--radius);
+      background: linear-gradient(90deg, #151515 0%, #1c1c1c 40%, #151515 80%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s ease-in-out infinite;
+      border: 1px solid var(--border);
+    }
+    @keyframes shimmer {
+      0% { background-position: 100% 0; }
+      100% { background-position: -100% 0; }
+    }
+
+    /* Feed cards */
+    .feed-card {
+      position: relative;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.85rem 0.85rem 0.85rem 2.5rem;
+      margin-bottom: 0.65rem;
+      cursor: pointer;
+      transition: border-color 0.25s, box-shadow 0.25s, transform 0.2s;
+      animation: cardIn 0.45s ease backwards;
+    }
+    .feed-card:hover {
+      border-color: rgba(0, 212, 255, 0.45);
+      box-shadow: 0 0 0 1px rgba(0, 212, 255, 0.15), 0 4px 20px rgba(0, 212, 255, 0.08);
+    }
+    .feed-card.selected {
+      border-color: rgba(255, 45, 45, 0.65);
+      box-shadow: 0 0 0 1px rgba(255, 45, 45, 0.25), 0 0 28px rgba(255, 45, 45, 0.12);
+    }
+    .feed-card.detail-row {
+      border-left: 3px solid var(--accent);
+      padding-left: calc(2.5rem - 2px);
+    }
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .feed-card .cb-wrap {
+      position: absolute;
+      left: 0.65rem;
+      top: 50%;
+      transform: translateY(-50%);
+      cursor: default;
+    }
+    .feed-card input[type="checkbox"] {
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: #0a0a0a;
+      cursor: pointer;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .feed-card input[type="checkbox"]:checked {
+      background: linear-gradient(135deg, var(--accent), #cc0000);
+      border-color: var(--accent);
+      box-shadow: 0 0 12px rgba(255, 45, 45, 0.5);
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 10'%3E%3Cpath fill='none' stroke='white' stroke-width='2' d='M1 5l3.5 3.5L11 1'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: center;
+      background-size: 11px auto;
+    }
+
+    .badge-wt {
+      display: inline-block;
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 0.2rem 0.45rem;
+      border-radius: 6px;
+      margin-bottom: 0.35rem;
+    }
+    .badge-wt.new {
+      color: var(--success);
+      border: 1px solid rgba(0, 255, 136, 0.35);
+      box-shadow: 0 0 12px rgba(0, 255, 136, 0.15);
+    }
+    .badge-wt.improvement {
+      color: var(--cyan);
+      border: 1px solid rgba(0, 212, 255, 0.35);
+      box-shadow: 0 0 12px rgba(0, 212, 255, 0.12);
+    }
+    .badge-wt.demolition {
+      color: var(--accent);
+      border: 1px solid rgba(255, 45, 45, 0.4);
+      box-shadow: 0 0 12px rgba(255, 45, 45, 0.12);
+    }
+    .badge-wt.addition {
+      color: #ffb020;
+      border: 1px solid rgba(255, 176, 32, 0.4);
+      box-shadow: 0 0 12px rgba(255, 176, 32, 0.12);
+    }
+    .badge-wt.other {
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+
+    .mono-cyan {
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--cyan);
+      text-shadow: 0 0 14px rgba(0, 212, 255, 0.25);
+    }
+    .mono-id {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--muted);
+    }
+    .feed-title {
+      font-weight: 600;
+      font-size: 0.9rem;
+      margin: 0 0 0.2rem;
+      color: var(--text);
+    }
+    .feed-meta {
+      font-size: 0.75rem;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    #feed-panel {
+      display: flex;
+      flex-direction: column;
+    }
+    #feed-panel .panel-feed-inner {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
+      padding: 0.5rem 0.65rem 0.35rem;
+      gap: 0.35rem;
+    }
+    .feed-toolbar {
+      flex-shrink: 0;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.5rem 0.75rem;
+    }
+    .feed-toolbar.hidden {
+      display: none !important;
+    }
+    .btn-filter-toggle {
+      font-family: var(--font-sans);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      padding: 0.45rem 0.85rem;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #0e0e0e;
+      color: var(--text);
+      cursor: pointer;
+      transition: border-color 0.2s, box-shadow 0.2s, color 0.2s;
+    }
+    .btn-filter-toggle:hover {
+      border-color: rgba(0, 212, 255, 0.45);
+      box-shadow: 0 0 14px rgba(0, 212, 255, 0.1);
+    }
+    .btn-filter-toggle[aria-expanded="true"] {
+      border-color: rgba(255, 45, 45, 0.5);
+      color: var(--accent-soft);
+      box-shadow: 0 0 12px rgba(255, 45, 45, 0.12);
+    }
+    .filter-counter-inline {
+      margin: 0;
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--muted);
+      flex: 1 1 auto;
+      min-width: 140px;
+    }
+    .filter-counter-inline strong {
+      color: var(--cyan);
+      font-weight: 600;
+    }
+
+    .filter-drawer {
+      flex-shrink: 0;
+      overflow: hidden;
+      max-height: 0;
+      opacity: 0;
+      transition: max-height 0.38s ease, opacity 0.25s ease, margin 0.25s ease;
+      margin: 0;
+      border: 1px solid transparent;
+      border-radius: var(--radius);
+    }
+    .filter-drawer.is-open {
+      max-height: min(50vh, 380px);
+      opacity: 1;
+      margin-bottom: 0.25rem;
+      border-color: var(--border);
+      background: #0c0c0c;
+    }
+    .filter-drawer-inner {
+      padding: 0.65rem 0.7rem;
+      max-height: min(48vh, 360px);
+      overflow-y: auto;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      gap: 0.45rem 0.55rem;
+    }
+
+    .filter-field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      min-width: 0;
+    }
+    .filter-field label {
+      font-size: 0.58rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .filter-field select {
+      font-family: var(--font-sans);
+      font-size: 0.72rem;
+      padding: 0.4rem 0.5rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #0a0a0a;
+      color: var(--text);
+      min-width: 7rem;
+      max-width: 10rem;
+      cursor: pointer;
+    }
+    .filter-field select:focus {
+      outline: none;
+      border-color: rgba(0, 212, 255, 0.45);
+      box-shadow: 0 0 0 1px rgba(0, 212, 255, 0.2);
+    }
+    .filter-cost {
+      flex: 1 1 160px;
+      min-width: 140px;
+    }
+    .filter-cost .cost-labels {
+      display: flex;
+      justify-content: space-between;
+      font-family: var(--font-mono);
+      font-size: 0.62rem;
+      color: var(--cyan);
+      margin-bottom: 0.2rem;
+    }
+    .filter-cost .range-row {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+    }
+    .filter-cost input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent);
+      height: 4px;
+      cursor: pointer;
+    }
+    .btn-reset {
+      font-family: var(--font-sans);
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 0.4rem 0.65rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      transition: color 0.2s, border-color 0.2s, box-shadow 0.2s;
+      align-self: flex-end;
+    }
+    .btn-reset:hover {
+      color: var(--accent);
+      border-color: rgba(255, 45, 45, 0.45);
+      box-shadow: 0 0 14px rgba(255, 45, 45, 0.12);
+    }
+
+    #feed-panel .permits-feed-scroll {
+      flex: 1 1 80%;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      padding: 0.15rem 0.1rem 0.35rem;
+    }
+
+    .feed-footer {
+      padding: 0.75rem 1rem;
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .sel-line {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin: 0 0 0.65rem;
+    }
+    .sel-line strong { color: var(--cyan); }
+
+    .opt-send {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-bottom: 0.75rem;
+      cursor: pointer;
+    }
+    .opt-send input { accent-color: var(--accent); }
+
+    .btn-launch {
+      width: 100%;
+      border: none;
+      border-radius: var(--radius);
+      padding: 0.95rem 1rem;
+      font-family: var(--font-sans);
+      font-weight: 800;
+      font-size: 0.85rem;
+      letter-spacing: 0.06em;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      color: #fff;
+      background: linear-gradient(135deg, #ff2d2d, #ff6b6b);
+      box-shadow: 0 4px 24px rgba(255, 45, 45, 0.35);
+      transition: transform 0.15s, box-shadow 0.25s;
+    }
+    .btn-launch:hover:not(:disabled) {
+      box-shadow: 0 0 32px rgba(255, 45, 45, 0.55), 0 6px 28px rgba(0, 0, 0, 0.45);
+      transform: translateY(-1px);
+    }
+    .btn-launch:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+    .btn-launch.has-selection:not(:disabled) {
+      animation: btnPulse 2s ease-in-out infinite;
+    }
+    @keyframes btnPulse {
+      0%, 100% { box-shadow: 0 4px 24px rgba(255, 45, 45, 0.35); }
+      50% { box-shadow: 0 0 36px rgba(255, 45, 45, 0.65), 0 4px 24px rgba(255, 45, 45, 0.4); }
+    }
+    .btn-launch .btn-label { position: relative; z-index: 2; }
+    .btn-launch .btn-progress {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      background: rgba(0, 0, 0, 0.35);
+      transform: translateX(-100%);
+      transition: transform 0.05s linear;
+    }
+    .btn-launch.is-running .btn-progress {
+      animation: progSweep 2.2s ease-in-out infinite;
+    }
+    .btn-launch.is-running .btn-label { opacity: 0.92; }
+    @keyframes progSweep {
+      0% { transform: translateX(-100%); }
+      50% { transform: translateX(-15%); }
+      100% { transform: translateX(0%); }
+    }
+
+    .err-txt {
+      margin: 0.5rem 0 0;
+      font-size: 0.75rem;
+      color: var(--accent);
+      display: none;
+    }
+    .err-txt.visible { display: block; }
+
+    /* AI panel */
+    .model-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      padding: 0.25rem 0.55rem;
+      border-radius: 999px;
+      border: 1px solid rgba(0, 212, 255, 0.35);
+      color: var(--cyan);
+      box-shadow: 0 0 14px rgba(0, 212, 255, 0.12);
+      margin-top: 0.35rem;
+    }
+    .ai-idle {
+      min-height: 200px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      font-size: 0.75rem;
+    }
+    .wave {
+      display: flex;
+      align-items: flex-end;
+      gap: 4px;
+      height: 48px;
+      margin-bottom: 1rem;
+    }
+    .wave span {
+      width: 4px;
+      background: linear-gradient(180deg, var(--cyan), transparent);
+      border-radius: 2px;
+      animation: wave 1.1s ease-in-out infinite;
+    }
+    .wave span:nth-child(1) { height: 18%; animation-delay: 0s; }
+    .wave span:nth-child(2) { height: 42%; animation-delay: 0.08s; }
+    .wave span:nth-child(3) { height: 72%; animation-delay: 0.16s; }
+    .wave span:nth-child(4) { height: 100%; animation-delay: 0.24s; }
+    .wave span:nth-child(5) { height: 68%; animation-delay: 0.32s; }
+    .wave span:nth-child(6) { height: 38%; animation-delay: 0.4s; }
+    .wave span:nth-child(7) { height: 16%; animation-delay: 0.48s; }
+    @keyframes wave {
+      0%, 100% { transform: scaleY(0.35); opacity: 0.4; }
+      50% { transform: scaleY(1); opacity: 1; }
+    }
+
+    .ai-stats {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-top: 0.75rem;
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: var(--muted);
+    }
+    .ai-stats span strong {
+      color: var(--cyan);
+      font-weight: 600;
+    }
+
+    .ai-log {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .ai-block {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.85rem;
+      background: #0c0c0c;
+      animation: blockIn 0.4s ease;
+    }
+    @keyframes blockIn {
+      from { opacity: 0; transform: translateX(-16px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    .ai-block.contractor-in {
+      animation: slideName 0.45s ease;
+    }
+    @keyframes slideName {
+      from { opacity: 0; transform: translateX(-28px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    .ai-block-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .ai-name {
+      font-weight: 700;
+      font-size: 0.85rem;
+      color: #fff;
+    }
+    .ai-cursor {
+      display: inline-block;
+      width: 2px;
+      height: 1em;
+      background: var(--cyan);
+      margin-left: 2px;
+      vertical-align: -2px;
+      animation: blink 0.8s step-end infinite;
+    }
+    @keyframes blink { 50% { opacity: 0; } }
+    .ai-copy {
+      font-size: 0.78rem;
+      line-height: 1.55;
+      color: #d8d8d8;
+      white-space: pre-wrap;
+    }
+    .ai-check {
+      color: var(--success);
+      font-size: 1.1rem;
+      filter: drop-shadow(0 0 6px rgba(0, 255, 136, 0.5));
+    }
+
+    /* Mail queue */
+    .cp-dot {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #c8102e;
+      margin-right: 6px;
+      vertical-align: middle;
+      box-shadow: 0 0 8px rgba(200, 16, 46, 0.6);
+    }
+
+    /* Mail queue — 6×4 postcard */
+    #mail-panel .mail-queue-body {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.25rem;
+    }
+
+    .postcard-stack {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    .postcard-wrap {
+      width: 100%;
+      max-width: 320px;
+      display: flex;
+      justify-content: center;
+      padding: 0.35rem 0 0.5rem;
+    }
+    .postcard-wrap:nth-child(even) .postcard-shell--filled {
+      transform: rotate(-1.2deg);
+    }
+
+    .postcard-shell {
+      width: 100%;
+      aspect-ratio: 6 / 4;
+      border-radius: 5px;
+      box-sizing: border-box;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #mail-empty.postcard-shell--ghost {
+      width: 100%;
+      max-width: 320px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .postcard-shell--ghost {
+      border: 2px dashed rgba(255, 255, 255, 0.22);
+      background: rgba(255, 255, 255, 0.02);
+      box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.35);
+      transform: rotate(-1deg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 1rem;
+      position: relative;
+    }
+    .postcard-shell--ghost::before {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 10%;
+      bottom: 22%;
+      border-left: 2px dotted rgba(255, 255, 255, 0.12);
+      transform: translateX(-50%);
+      pointer-events: none;
+    }
+    .postcard-shell--ghost::after {
+      content: "";
+      position: absolute;
+      left: 6%;
+      right: 6%;
+      bottom: 10%;
+      height: 11%;
+      max-height: 2.25rem;
+      border: 1px dashed rgba(200, 16, 46, 0.28);
+      border-radius: 2px;
+      pointer-events: none;
+    }
+    .postcard-shell--ghost .ghost-label {
+      position: relative;
+      z-index: 1;
+      font-size: 0.75rem;
+      color: var(--muted);
+      line-height: 1.45;
+      max-width: 12rem;
+    }
+
+    .postcard-shell--filled {
+      background: #ffffff;
+      color: #111111;
+      box-shadow:
+        0 14px 40px rgba(0, 0, 0, 0.55),
+        0 2px 6px rgba(0, 0, 0, 0.35);
+      transform: rotate(1.5deg);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .pc-status {
+      position: relative;
+      align-self: flex-start;
+      flex-shrink: 0;
+      margin-bottom: 0.3rem;
+      z-index: 2;
+      font-size: 0.5rem;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      padding: 0.2rem 0.4rem;
+      border-radius: 4px;
+      color: #fff;
+      text-transform: uppercase;
+    }
+    .pc-status--queued { background: linear-gradient(90deg, #0055aa, var(--cyan)); }
+    .pc-status--sent { background: linear-gradient(90deg, #006633, var(--success)); }
+    .pc-status--failed { background: linear-gradient(90deg, #991100, var(--accent)); }
+
+    .pc-main {
+      flex: 1;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+    }
+
+    .pc-col-left {
+      padding: 0.65rem 0.55rem 0.5rem 0.65rem;
+      border-right: 2px dotted #c8c8c8;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+    .pc-brand {
+      font-size: 0.58rem;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #c8102e;
+      margin-bottom: 0.35rem;
+    }
+    .pc-copy {
+      font-size: 13px;
+      line-height: 1.45;
+      color: #1a1a1a;
+      white-space: pre-wrap;
+      overflow-y: auto;
+      flex: 1;
+      min-height: 0;
+    }
+
+    .pc-col-right {
+      position: relative;
+      padding: 0.5rem 0.45rem 0.45rem 0.5rem;
+      min-width: 0;
+    }
+    .pc-stamp {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      width: 52px;
+      height: 62px;
+      background: #c8102e;
+      border: 1px solid #8b0018;
+      border-radius: 2px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      font-size: 0.45rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      line-height: 1.15;
+      color: #fff;
+      padding: 0.2rem;
+      z-index: 2;
+    }
+    .pc-addr-mono {
+      position: absolute;
+      left: 0.45rem;
+      right: 0.45rem;
+      bottom: 0.4rem;
+      font-family: var(--font-mono);
+      font-size: 0.62rem;
+      line-height: 1.35;
+      color: #222;
+      text-align: right;
+      word-break: break-word;
+    }
+
+    .pc-strip {
+      flex-shrink: 0;
+      border-top: 1px solid #c8102e;
+      background: #fafafa;
+      padding: 0.22rem 0.35rem;
+      font-size: 0.45rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      text-align: center;
+      color: #555;
+    }
+
+    .cost-footer {
+      margin-top: auto;
+      padding-top: 0.75rem;
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+    }
+    .cost-footer strong { color: var(--cyan); }
+
+    /* Detail modal */
+    #detail-backdrop {
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+    #detail-backdrop.is-open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    #detail-panel {
+      transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+      pointer-events: none;
+    }
+    @media (max-width: 1023px) {
+      #detail-panel { transform: translateY(110%); }
+      #detail-panel.is-open { transform: translateY(0); pointer-events: auto; }
+    }
+    @media (min-width: 1024px) {
+      #detail-panel { transform: translateX(105%); }
+      #detail-panel.is-open { transform: translateX(0); pointer-events: auto; }
+    }
+
+    .detail-dl-row {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: 0.5rem 1rem;
+      padding: 0.55rem 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.78rem;
+    }
+    .detail-dl-row dt {
+      color: var(--muted);
+      text-transform: uppercase;
+      font-size: 0.62rem;
+      letter-spacing: 0.06em;
+    }
+    .detail-dl-row dd { margin: 0; color: var(--text); word-break: break-word; }
+
+    .success-flash {
+      animation: successFlash 0.65s ease;
+    }
+    @keyframes successFlash {
+      0% { box-shadow: inset 0 0 0 0 rgba(0, 255, 136, 0); }
+      40% { box-shadow: inset 0 0 80px 0 rgba(0, 255, 136, 0.12); }
+      100% { box-shadow: inset 0 0 0 0 rgba(0, 255, 136, 0); }
+    }
+  </style>
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand">
-      <span class="brand-name">Calgary Permit Mailer</span>
-      <span class="brand-sub">YYC ProBuild · Open Data</span>
-    </div>
-    <span class="topbar-spacer" aria-hidden="true"></span>
-    <div class="topbar-meta">
-      <span class="feed-status" id="feed-status" data-state="loading">
-        <span class="dot" aria-hidden="true"></span>
-        <span id="feed-status-label">Loading permits…</span>
-      </span>
-      <span class="clock" id="clock" aria-live="polite">—:—:—</span>
-    </div>
-  </header>
+  <div class="app" id="app-root">
+    <header class="top-header">
+      <div class="brand">
+        <span class="logo-mark" aria-hidden="true"></span>
+        <span class="brand-title">Calgary Permit Mailer</span>
+      </div>
+      <div class="pipeline-visual" id="pipeline-visual" aria-hidden="true">
+        <span class="p-step" data-step="0"><span>📡</span> Open Data</span>
+        <span class="p-conn" data-conn="0"><span class="dot"></span><span class="line"></span></span>
+        <span class="p-step" data-step="1"><span>🤖</span> GPT-4o</span>
+        <span class="p-conn" data-conn="1"><span class="dot"></span><span class="line"></span></span>
+        <span class="p-step" data-step="2"><span>✉️</span> PostGrid</span>
+        <span class="p-conn" data-conn="2"><span class="dot"></span><span class="line"></span></span>
+        <span class="p-step" data-step="3"><span>📬</span> Mailbox</span>
+      </div>
+      <div class="header-clock">
+        <div class="clock-time" id="header-clock">—:—:—</div>
+        <div class="clock-tz">YYC</div>
+      </div>
+    </header>
+    <div class="header-glow-line" aria-hidden="true"></div>
 
-  <div class="shell">
-    <div>
-      <section class="intro">
-        <h1>Turn new permits into postcards</h1>
-        <p>
-          Pull Calgary building permits, generate short copy, and optionally send test postcards through PostGrid.
-          Select rows, review details on the right, then launch the pipeline.
-        </p>
+    <div class="marquee-wrap" aria-hidden="true">
+      <div class="marquee">
+        <span>Calgary publishes 70+ building permits daily</span>
+        <span>·</span>
+        <span>Every permit is a contractor</span>
+        <span>·</span>
+        <span>Every contractor is a prospect</span>
+        <span>·</span>
+        <span>This tool finds them, writes to them, mails to them</span>
+        <span>·</span>
+        <span>Automatically</span>
+        <span>·</span>
+        <span>Repeat tomorrow</span>
+        <span>·</span>
+        <span>Calgary publishes 70+ building permits daily</span>
+        <span>·</span>
+        <span>Every permit is a contractor</span>
+        <span>·</span>
+        <span>Every contractor is a prospect</span>
+        <span>·</span>
+        <span>This tool finds them, writes to them, mails to them</span>
+        <span>·</span>
+        <span>Automatically</span>
+        <span>·</span>
+        <span>Repeat tomorrow</span>
+        <span>·</span>
+      </div>
+    </div>
+
+    <main class="main-grid" id="main-grid">
+      <!-- Left: feed -->
+      <section class="panel" id="feed-panel">
+        <div class="panel-head">
+          <p class="panel-kicker">Live permit feed</p>
+          <p class="panel-sub"><span class="live-dot"></span>Calgary Open Data · <span id="permits-load-msg">Initializing…</span></p>
+        </div>
+        <div class="panel-feed-inner">
+          <div id="feed-toolbar" class="feed-toolbar hidden">
+            <button
+              type="button"
+              id="filter-toggle"
+              class="btn-filter-toggle"
+              aria-expanded="false"
+              aria-controls="filter-drawer"
+            >
+              ⚙ Filters
+            </button>
+            <p id="filter-counter" class="filter-counter-inline">
+              Showing <strong>0</strong> of <strong>0</strong> permits
+            </p>
+          </div>
+          <div id="filter-drawer" class="filter-drawer" role="region" aria-label="Permit filters">
+            <div class="filter-drawer-inner">
+              <div class="filter-field">
+                <label for="filter-work">Work type</label>
+                <select id="filter-work">
+                  <option value="all">All</option>
+                  <option value="new">New</option>
+                  <option value="improvement">Improvement</option>
+                  <option value="demolition">Demolition</option>
+                  <option value="addition">Addition</option>
+                </select>
+              </div>
+              <div class="filter-field">
+                <label for="filter-class">Permit class</label>
+                <select id="filter-class">
+                  <option value="all">All</option>
+                  <option value="residential">Residential</option>
+                  <option value="commercial">Commercial</option>
+                  <option value="industrial">Industrial</option>
+                  <option value="institutional">Institutional</option>
+                </select>
+              </div>
+              <div class="filter-field">
+                <label for="filter-community">Community</label>
+                <select id="filter-community"><option value="all">All</option></select>
+              </div>
+              <div class="filter-field filter-cost">
+                <label>Est. project cost (CAD)</label>
+                <div class="cost-labels">
+                  <span id="cost-min-label">$0</span>
+                  <span id="cost-max-label">$0</span>
+                </div>
+                <div class="range-row">
+                  <input type="range" id="cost-min-slider" min="0" max="100" value="0" step="1000" />
+                  <input type="range" id="cost-max-slider" min="0" max="100" value="100" step="1000" />
+                </div>
+              </div>
+              <div class="filter-field">
+                <label for="filter-sort">Sort by</label>
+                <select id="filter-sort">
+                  <option value="date">Date (newest)</option>
+                  <option value="cost_desc">Cost (high → low)</option>
+                  <option value="cost_asc">Cost (low → high)</option>
+                  <option value="contractor">Contractor name</option>
+                </select>
+              </div>
+              <button type="button" class="btn-reset" id="filter-reset">Reset</button>
+            </div>
+          </div>
+          <div class="permits-feed-scroll" id="permits-feed"></div>
+        </div>
+        <div class="feed-footer">
+          <p class="sel-line" id="selected-count">0 targets selected</p>
+          <label class="opt-send">
+            <input type="checkbox" id="send" />
+            <span>Send live postcards (PostGrid + <code style="font-size:0.65rem">POSTGRID_TO_*</code>)</span>
+          </label>
+          <button type="button" class="btn-launch" id="run-btn" disabled>
+            <span class="btn-progress" aria-hidden="true"></span>
+            <span class="btn-label">⚡ LAUNCH PIPELINE</span>
+          </button>
+          <p class="err-txt" id="results-error"></p>
+        </div>
       </section>
 
-      <div class="card">
-        <div class="card-head">
-          <h2 class="card-title">Permit feed</h2>
-          <p class="card-meta" id="card-meta">Showing <strong>0</strong> of <strong>0</strong></p>
+      <!-- Center: AI -->
+      <section class="panel" id="ai-panel">
+        <div class="panel-head">
+          <p class="panel-kicker">AI copy engine</p>
+          <span class="model-pill">● GPT-4o-mini</span>
         </div>
-
-        <div class="selbar" id="selbar">
-          <label class="selbar-check" for="select-all">
-            <input type="checkbox" class="cb" id="select-all" aria-label="Select all visible permits" />
-            <span class="selbar-text"><strong id="sel-count">0</strong> selected</span>
-          </label>
-          <span class="selbar-spacer" aria-hidden="true"></span>
-          <div class="selbar-actions">
-            <button type="button" class="link-btn" id="btn-select-visible">Select all</button>
-            <button type="button" class="link-btn" id="btn-select-none">Select none</button>
-          </div>
-        </div>
-
-        <div class="toolbar" role="toolbar" aria-label="Search and filters">
-          <div class="search">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-              <circle cx="11" cy="11" r="7" />
-              <path d="M20 20l-3-3" />
-            </svg>
-            <input type="search" id="search-input" placeholder="Search contractor or address" autocomplete="off" />
-          </div>
-          <button type="button" class="btn" id="chip-all" aria-pressed="true">All</button>
-          <button type="button" class="btn" id="chip-new" aria-pressed="false">New</button>
-          <button type="button" class="btn" id="chip-improvement" aria-pressed="false">Improvement</button>
-          <button type="button" class="btn" id="chip-addition" aria-pressed="false">Addition</button>
-          <button type="button" class="btn" id="chip-demolition" aria-pressed="false">Demolition</button>
-          <span class="toolbar-spacer" aria-hidden="true"></span>
-          <label class="sr-only" for="sort-select">Sort</label>
-          <select id="sort-select" aria-label="Sort permits">
-            <option value="newest">Newest</option>
-            <option value="oldest">Oldest</option>
-            <option value="cost_desc">Cost ↓</option>
-            <option value="cost_asc">Cost ↑</option>
-            <option value="name">Name</option>
-          </select>
-          <span class="toolbar-meta" id="toolbar-meta"><strong>0</strong> in view</span>
-        </div>
-
-        <div class="feed-scroll" id="feed-scroll"></div>
-      </div>
-    </div>
-
-    <aside class="side">
-      <div class="card">
-        <div class="card-head">
-          <h2 class="card-title">Permit detail</h2>
-          <p class="card-meta" id="detail-card-meta"></p>
-        </div>
-        <div class="side-card">
-          <div class="detail-empty" id="detail-empty">
-            <h3>No permit selected</h3>
-            <p>Click a row in the feed to see full fields from Open Data.</p>
-          </div>
-          <div class="detail hidden" id="detail-root" aria-live="polite">
-            <h2 class="detail-name" id="detail-name"></h2>
-            <p class="detail-id" id="detail-id"></p>
-            <dl class="detail-grid" id="detail-grid"></dl>
-            <details class="disclosure">
-              <summary>Raw record (JSON)</summary>
-              <pre id="detail-raw"></pre>
-            </details>
-          </div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-head">
-          <h2 class="card-title">Send pipeline</h2>
-          <p class="card-meta">POST /run</p>
-        </div>
-        <div class="side-card">
-          <h2>Launch</h2>
-          <p class="lede">Generate copy for each selected permit. Optional live send uses PostGrid env vars.</p>
-
-          <div class="summary-block">
-            <div class="summary-row">
-              <span class="label">Selected permits</span>
-              <span class="value" id="summary-selected">0</span>
+        <div class="panel-body" id="ai-body">
+          <div class="ai-idle" id="ai-idle">
+            <div class="wave" aria-hidden="true">
+              <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
             </div>
-            <div class="summary-row">
-              <span class="label">Live postcard send</span>
-              <span class="value" id="summary-send-label">Off</span>
-            </div>
+            <span id="ai-idle-msg">Neural queue idle — select permits and launch.</span>
           </div>
-
-          <label class="send-toggle" id="send-toggle-label" for="send">
-            <input type="checkbox" id="send" />
-            <span class="copy">
-              <strong>Send live postcards</strong>
-              <span>Uses PostGrid + POSTGRID_TO_* recipient fields. Leave off to generate copy only.</span>
-            </span>
-          </label>
-
-          <button type="button" class="btn btn-primary btn-block" id="btn-launch" disabled>Launch pipeline</button>
-          <p class="help-text" id="run-help">
-            Select at least one permit. The backend expects full permit objects in the request body (unchanged contract).
-          </p>
+          <div class="ai-log hidden" id="ai-log"></div>
+          <div class="ai-stats">
+            <span>Tokens <strong id="stat-tokens">0</strong></span>
+            <span>Postcards <strong id="stat-postcards">0</strong></span>
+          </div>
         </div>
+      </section>
+
+      <!-- Right: mail -->
+      <section class="panel" id="mail-panel">
+        <div class="panel-head">
+          <p class="panel-kicker">Postgrid mail queue</p>
+          <p class="panel-sub"><span class="cp-dot"></span>via Canada Post</p>
+        </div>
+        <div class="panel-body mail-queue-body" id="mail-panel-body">
+          <div id="mail-empty" class="postcard-shell postcard-shell--ghost" aria-hidden="false">
+            <span class="ghost-label">Postcards will appear here</span>
+          </div>
+          <div id="mail-stack" class="postcard-stack hidden"></div>
+        </div>
+        <div class="cost-footer">
+          Total pipeline cost (est.): <strong id="pipeline-cost">~$0.00</strong>
+        </div>
+      </section>
+    </main>
+
+    <!-- Detail overlay -->
+    <div
+      id="detail-backdrop"
+      class="fixed inset-0 z-[90] bg-black/70 lg:bg-black/50"
+      aria-hidden="true"
+    ></div>
+    <aside
+      id="detail-panel"
+      class="fixed bottom-0 left-0 right-0 z-[100] flex max-h-[90vh] flex-col rounded-t-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] shadow-2xl lg:bottom-auto lg:left-auto lg:top-0 lg:right-0 lg:max-h-none lg:h-full lg:w-[min(100%,440px)] lg:rounded-none lg:border-l"
+      aria-hidden="true"
+    >
+      <div class="flex items-center justify-between gap-3 border-b border-[var(--border)] px-4 py-3">
+        <div class="min-w-0">
+          <h3 class="truncate text-sm font-bold uppercase tracking-wide text-[var(--text)]">Permit file</h3>
+          <p id="detail-subtitle" class="truncate font-mono text-xs text-[var(--cyan)]"></p>
+        </div>
+        <button
+          type="button"
+          id="detail-close"
+          class="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] border border-[var(--border)] text-[var(--muted)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+          aria-label="Close"
+        >
+          ×
+        </button>
       </div>
+      <div id="detail-body" class="min-h-0 flex-1 overflow-y-auto px-4 py-3"></div>
     </aside>
-  </div>
-
-  <div class="modal-veil hidden" id="modal-veil" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-    <div class="modal">
-      <div class="modal-head">
-        <h2 id="modal-title">Pipeline</h2>
-        <button type="button" class="close" id="modal-close" aria-label="Close">×</button>
-      </div>
-      <div class="modal-progress">
-        <div id="modal-progress-text">Preparing…</div>
-        <div class="progress-bar" aria-hidden="true">
-          <div class="progress-bar-fill" id="progress-fill"></div>
-        </div>
-      </div>
-      <div class="modal-list" id="modal-list"></div>
-      <div class="modal-foot">
-        <p class="summary" id="modal-foot-summary"><strong>0</strong> permits</p>
-        <button type="button" class="btn btn-primary" id="modal-done">Done</button>
-      </div>
-    </div>
   </div>
 
   <script>
     (function () {
-      var allPermits = [];
-      var filtered = [];
-      var selected = Object.create(null);
-      var detailIdx = null;
-      var workChip = 'all';
-      var sortKey = 'newest';
-      var searchQ = '';
-      var statusByPermit = {};
+      const sendInput = document.getElementById('send');
+      const runBtn = document.getElementById('run-btn');
+      const permitsFeed = document.getElementById('permits-feed');
+      const permitsLoadMsg = document.getElementById('permits-load-msg');
+      const selectedCountEl = document.getElementById('selected-count');
+      const resultsError = document.getElementById('results-error');
+      const detailPanel = document.getElementById('detail-panel');
+      const detailBackdrop = document.getElementById('detail-backdrop');
+      const detailBody = document.getElementById('detail-body');
+      const detailClose = document.getElementById('detail-close');
+      const detailSubtitle = document.getElementById('detail-subtitle');
+      const aiIdle = document.getElementById('ai-idle');
+      const aiLog = document.getElementById('ai-log');
+      const mailEmpty = document.getElementById('mail-empty');
+      const mailStack = document.getElementById('mail-stack');
+      const statTokens = document.getElementById('stat-tokens');
+      const statPostcards = document.getElementById('stat-postcards');
+      const pipelineCostEl = document.getElementById('pipeline-cost');
+      const mainGrid = document.getElementById('main-grid');
+      const steps = document.querySelectorAll('.p-step');
+      const conns = document.querySelectorAll('.p-conn');
+      const aiIdleMsg = document.getElementById('ai-idle-msg');
+      const feedToolbar = document.getElementById('feed-toolbar');
+      const filterToggle = document.getElementById('filter-toggle');
+      const filterDrawer = document.getElementById('filter-drawer');
+      const filterCounter = document.getElementById('filter-counter');
+      const filterWork = document.getElementById('filter-work');
+      const filterClass = document.getElementById('filter-class');
+      const filterCommunity = document.getElementById('filter-community');
+      const costMinSlider = document.getElementById('cost-min-slider');
+      const costMaxSlider = document.getElementById('cost-max-slider');
+      const costMinLabel = document.getElementById('cost-min-label');
+      const costMaxLabel = document.getElementById('cost-max-label');
+      const filterSort = document.getElementById('filter-sort');
+      const filterReset = document.getElementById('filter-reset');
 
-      var feedScroll = document.getElementById('feed-scroll');
-      var feedStatus = document.getElementById('feed-status');
-      var feedStatusLabel = document.getElementById('feed-status-label');
-      var cardMeta = document.getElementById('card-meta');
-      var toolbarMeta = document.getElementById('toolbar-meta');
-      var selbar = document.getElementById('selbar');
-      var selCount = document.getElementById('sel-count');
-      var selectAllCb = document.getElementById('select-all');
-      var btnSelectVisible = document.getElementById('btn-select-visible');
-      var btnSelectNone = document.getElementById('btn-select-none');
-      var searchInput = document.getElementById('search-input');
-      var sortSelect = document.getElementById('sort-select');
-      var chipAll = document.getElementById('chip-all');
-      var chipNew = document.getElementById('chip-new');
-      var chipImprovement = document.getElementById('chip-improvement');
-      var chipAddition = document.getElementById('chip-addition');
-      var chipDemolition = document.getElementById('chip-demolition');
-      var detailEmpty = document.getElementById('detail-empty');
-      var detailRoot = document.getElementById('detail-root');
-      var detailName = document.getElementById('detail-name');
-      var detailId = document.getElementById('detail-id');
-      var detailGrid = document.getElementById('detail-grid');
-      var detailRaw = document.getElementById('detail-raw');
-      var detailCardMeta = document.getElementById('detail-card-meta');
-      var summarySelected = document.getElementById('summary-selected');
-      var summarySendLabel = document.getElementById('summary-send-label');
-      var sendInput = document.getElementById('send');
-      var sendToggleLabel = document.getElementById('send-toggle-label');
-      var btnLaunch = document.getElementById('btn-launch');
-      var modalVeil = document.getElementById('modal-veil');
-      var modalClose = document.getElementById('modal-close');
-      var modalDone = document.getElementById('modal-done');
-      var modalList = document.getElementById('modal-list');
-      var modalProgressText = document.getElementById('modal-progress-text');
-      var progressFill = document.getElementById('progress-fill');
-      var modalFootSummary = document.getElementById('modal-foot-summary');
-      var clockEl = document.getElementById('clock');
+      let allPermits = [];
+      const selected = new Set();
+      let detailIdx = null;
+      let tokenCount = 0;
+      let postcardCount = 0;
+      let costDataMin = 0;
+      let costDataMax = 1;
+      let filterListenersBound = false;
+
+      function setPipelineUi(phase) {
+        const idle = phase === 'idle' || phase === null;
+        steps.forEach(function (el, i) {
+          el.classList.remove('active', 'done');
+          if (idle) return;
+          if (typeof phase === 'number' && i < phase) el.classList.add('done');
+          if (typeof phase === 'number' && i === phase) el.classList.add('active');
+        });
+        conns.forEach(function (el, i) {
+          const pulse =
+            !idle &&
+            typeof phase === 'number' &&
+            i === Math.min(phase, conns.length - 1);
+          el.classList.toggle('pulse', pulse);
+        });
+      }
+
+      function animateNumber(el, from, to, dur) {
+        const start = performance.now();
+        function frame(t) {
+          const p = Math.min(1, (t - start) / dur);
+          const ease = 1 - Math.pow(1 - p, 3);
+          el.textContent = String(Math.round(from + (to - from) * ease));
+          if (p < 1) requestAnimationFrame(frame);
+        }
+        requestAnimationFrame(frame);
+      }
+
+      function tickClock() {
+        const el = document.getElementById('header-clock');
+        const fmt = new Intl.DateTimeFormat('en-CA', {
+          timeZone: 'America/Edmonton',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: false,
+        });
+        el.textContent = fmt.format(new Date());
+      }
+      tickClock();
+      setInterval(tickClock, 1000);
 
       function escapeHtml(s) {
         return String(s)
@@ -223,6 +1348,7 @@
           .replace(/"/g, '&quot;');
       }
 
+      /** Fallback if API copy exceeds postcard print limit (prompt is source of truth). */
       function truncatePostcardCopy(s, maxLen) {
         var max = maxLen == null ? 300 : maxLen;
         var str = String(s);
@@ -236,19 +1362,8 @@
 
       function formatMoney(v) {
         if (v == null || v === '') return '—';
-        var n = Number(v);
+        const n = Number(v);
         if (!Number.isFinite(n)) return escapeHtml(String(v));
-        return new Intl.NumberFormat('en-CA', {
-          style: 'currency',
-          currency: 'CAD',
-          maximumFractionDigits: 0,
-        }).format(n);
-      }
-
-      function formatMoneyPlain(v) {
-        if (v == null || v === '') return '—';
-        var n = Number(v);
-        if (!Number.isFinite(n)) return String(v);
         return new Intl.NumberFormat('en-CA', {
           style: 'currency',
           currency: 'CAD',
@@ -261,11 +1376,6 @@
         return escapeHtml(String(iso).slice(0, 10));
       }
 
-      function formatDateText(iso) {
-        if (!iso) return '—';
-        return String(iso).slice(0, 10);
-      }
-
       function workType(p) {
         return (
           p.workclassgroup ||
@@ -276,8 +1386,8 @@
         );
       }
 
-      function workBadgeKey(wt) {
-        var s = String(wt).toLowerCase();
+      function workBadgeClass(wt) {
+        const s = String(wt).toLowerCase();
         if (/\bdemo/i.test(s)) return 'demolition';
         if (/\bimprove|\bexisting|\brenov/i.test(s)) return 'improvement';
         if (/\baddition/i.test(s)) return 'addition';
@@ -285,12 +1395,173 @@
         return 'other';
       }
 
-      function badgeClassForKey(key) {
-        if (key === 'new') return 'badge b-new';
-        if (key === 'improvement') return 'badge b-improvement';
-        if (key === 'addition') return 'badge b-addition';
-        if (key === 'demolition') return 'badge b-demolition';
-        return 'badge';
+      function contractorPhone(p) {
+        const keys = [
+          'contractorphone',
+          'contractor_phone',
+          'contractorphonenumber',
+          'applicantphone',
+          'phone',
+        ];
+        for (let i = 0; i < keys.length; i++) {
+          const v = p[keys[i]];
+          if (v != null && String(v).trim() !== '') return String(v);
+        }
+        return '';
+      }
+
+      function fullAddressLines(p) {
+        const lines = [];
+        if (p.originaladdress) lines.push(String(p.originaladdress));
+        if (p.locationaddresses && p.locationaddresses !== p.originaladdress) {
+          lines.push(String(p.locationaddresses));
+        }
+        return lines;
+      }
+
+      function latLongText(p) {
+        if (p.point && Array.isArray(p.point.coordinates) && p.point.coordinates.length >= 2) {
+          return p.point.coordinates[1] + ', ' + p.point.coordinates[0];
+        }
+        if (p.latitude != null && p.longitude != null) {
+          return String(p.latitude) + ', ' + String(p.longitude);
+        }
+        return '';
+      }
+
+      function formatDetailValue(v) {
+        if (v == null || v === '') return '<span style="color:var(--muted)">—</span>';
+        if (typeof v === 'object') {
+          return (
+            '<pre style="margin:0;max-height:10rem;overflow:auto;font-size:0.65rem;font-family:var(--font-mono);background:#0a0a0a;padding:0.5rem;border-radius:8px;border:1px solid var(--border)">' +
+            escapeHtml(JSON.stringify(v, null, 2)) +
+            '</pre>'
+          );
+        }
+        return '<span>' + escapeHtml(String(v)) + '</span>';
+      }
+
+      function detailRow(label, inner) {
+        return (
+          '<div class="detail-dl-row"><dt>' +
+          escapeHtml(label) +
+          '</dt><dd>' +
+          inner +
+          '</dd></div>'
+        );
+      }
+
+      function renderDetailHtml(p) {
+        const phone = contractorPhone(p);
+        const phoneHtml = phone
+          ? escapeHtml(phone)
+          : '<span style="color:var(--muted)">Not in Open Data</span>';
+        const owner = p.applicantname || p.ownername || '';
+        const ownerHtml = owner ? escapeHtml(String(owner)) : '<span style="color:var(--muted)">—</span>';
+        const addrLines = fullAddressLines(p);
+        const addrHtml =
+          addrLines.length > 0
+            ? addrLines.map(function (l) {
+                return escapeHtml(l);
+              }).join('<br/>')
+            : '<span style="color:var(--muted)">—</span>';
+        const community = [p.communityname, p.communitycode].filter(Boolean).join(' · ') || '';
+        const latlng = latLongText(p);
+        const latlngHtml = latlng ? escapeHtml(latlng) : '<span style="color:var(--muted)">—</span>';
+        const units =
+          p.housingunits != null && p.housingunits !== ''
+            ? escapeHtml(String(p.housingunits))
+            : '<span style="color:var(--muted)">—</span>';
+
+        let html =
+          '<div style="border:1px solid var(--border);border-radius:12px;overflow:hidden">' +
+          detailRow('Permit number', formatDetailValue(p.permitnum)) +
+          detailRow('Status', formatDetailValue(p.statuscurrent)) +
+          detailRow('Applied date', formatDate(p.applieddate)) +
+          detailRow('Issued date', formatDate(p.issueddate)) +
+          detailRow('Completed date', formatDate(p.completeddate)) +
+          detailRow('Contractor name', formatDetailValue(p.contractorname)) +
+          detailRow('Contractor phone', phoneHtml) +
+          detailRow('Applicant / owner name', ownerHtml) +
+          detailRow('Address (full)', addrHtml) +
+          detailRow('Community / neighbourhood', formatDetailValue(community)) +
+          detailRow('Work class group', formatDetailValue(p.workclassgroup)) +
+          detailRow('Description of work', formatDetailValue(p.description)) +
+          detailRow('Estimated project cost', formatMoney(p.estprojectcost)) +
+          detailRow('Number of units', units) +
+          detailRow('Location (lat / long)', latlngHtml) +
+          '</div>';
+
+        const keys = Object.keys(p).sort();
+        html +=
+          '<p style="margin:1rem 0 0.5rem;font-size:0.62rem;font-weight:700;letter-spacing:0.15em;color:var(--muted);text-transform:uppercase">All fields</p><div style="border:1px solid var(--border);border-radius:12px;overflow:hidden">';
+        keys.forEach(function (k) {
+          html += detailRow(k, formatDetailValue(p[k]));
+        });
+        html += '</div>';
+        return html;
+      }
+
+      function closeDetail() {
+        detailIdx = null;
+        detailPanel.classList.remove('is-open');
+        detailBackdrop.classList.remove('is-open');
+        detailBody.innerHTML = '';
+        detailSubtitle.textContent = '';
+        detailPanel.setAttribute('aria-hidden', 'true');
+        detailBackdrop.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('overflow-hidden');
+        updateRowClasses();
+      }
+
+      function openDetail(idx) {
+        if (idx < 0 || idx >= allPermits.length) return;
+        detailIdx = idx;
+        const p = allPermits[idx];
+        detailSubtitle.textContent = p.permitnum || '';
+        detailBody.innerHTML = renderDetailHtml(p);
+        detailPanel.classList.add('is-open');
+        detailBackdrop.classList.add('is-open');
+        detailPanel.setAttribute('aria-hidden', 'false');
+        detailBackdrop.setAttribute('aria-hidden', 'false');
+        if (window.matchMedia('(max-width: 1023px)').matches) {
+          document.body.classList.add('overflow-hidden');
+        }
+        updateRowClasses();
+      }
+
+      function updateRowClasses() {
+        const n = selected.size;
+        selectedCountEl.innerHTML =
+          n === 0
+            ? '0 <strong>targets</strong> selected'
+            : n === 1
+              ? '1 <strong>target</strong> selected'
+              : (
+                  '<strong>' +
+                  n +
+                  '</strong> targets selected'
+                );
+        runBtn.disabled = n === 0;
+        runBtn.classList.toggle('has-selection', n > 0);
+        permitsFeed.querySelectorAll('.feed-card[data-idx]').forEach(function (card) {
+          const idx = parseInt(card.getAttribute('data-idx'), 10);
+          card.classList.toggle('selected', selected.has(idx));
+          card.classList.toggle('detail-row', detailIdx === idx);
+          const cb = card.querySelector('input[type="checkbox"]');
+          if (cb) cb.checked = selected.has(idx);
+        });
+      }
+
+      function toggleIndex(idx) {
+        if (selected.has(idx)) selected.delete(idx);
+        else selected.add(idx);
+        updateRowClasses();
+      }
+
+      function parseCost(p) {
+        const n = Number(p.estprojectcost);
+        return Number.isFinite(n) ? n : 0;
       }
 
       function workStrings(p) {
@@ -307,588 +1578,586 @@
           .toLowerCase();
       }
 
-      function matchesWorkChip(p, chip) {
-        if (chip === 'all') return true;
-        var s = workStrings(p);
-        if (chip === 'new') return /\bnew\b/i.test(s) && !/\brenew/i.test(s);
-        if (chip === 'improvement') {
+      function matchesWorkFilter(p, v) {
+        if (v === 'all') return true;
+        const s = workStrings(p);
+        if (v === 'new') return /\bnew\b/i.test(s) && !/\brenew/i.test(s);
+        if (v === 'improvement') {
           return /\bimprove|\bexisting|\brenov/i.test(s) || /\brepair/i.test(s);
         }
-        if (chip === 'demolition') return /\bdemo/i.test(s);
-        if (chip === 'addition') return /\baddition/i.test(s);
+        if (v === 'demolition') return /\bdemo/i.test(s);
+        if (v === 'addition') return /\baddition/i.test(s);
         return true;
       }
 
-      function parseCost(p) {
-        var n = Number(p.estprojectcost);
-        return Number.isFinite(n) ? n : 0;
-      }
-
-      function parseDateMs(p) {
-        var raw = p.applieddate || p.issueddate || '';
-        var t = Date.parse(String(raw));
-        return Number.isFinite(t) ? t : 0;
-      }
-
-      function matchesSearch(p, q) {
-        if (!q) return true;
-        var blob = [
-          p.contractorname,
-          p.originaladdress,
-          p.address,
-          p.communityname,
-          p.permitnum,
+      function permitClassBucket(p) {
+        const blob = [
+          p.permitclassmapped,
+          p.permitclassgroup,
+          p.permitclass,
+          p.permittype,
+          p.permittypemapped,
         ]
           .filter(Boolean)
           .join(' ')
           .toLowerCase();
-        return blob.indexOf(q) !== -1;
+        if (
+          /institutional|school|hospital|church|religious|library|museum|municipal|civic|government|arena|daycare|education/i.test(
+            blob,
+          )
+        ) {
+          return 'institutional';
+        }
+        if (/industrial|manufactur|warehouse|factory|f\d+\s/i.test(blob)) {
+          return 'industrial';
+        }
+        if (
+          /commercial|multi.family|multi-family|multifamily|retail|office|hotel|mixed|shopping|restaurant|store/i.test(
+            blob,
+          )
+        ) {
+          return 'commercial';
+        }
+        if (/residential|single.family|duplex|house|dwell|suite|condo|townhouse|sfd|garage|deck|basement/i.test(blob)) {
+          return 'residential';
+        }
+        if (p.permitclassmapped && String(p.permitclassmapped).toLowerCase() === 'residential') {
+          return 'residential';
+        }
+        if (p.permitclassmapped && String(p.permitclassmapped).toLowerCase() === 'non-residential') {
+          if (/industrial/i.test(blob)) return 'industrial';
+          if (/institutional/i.test(blob)) return 'institutional';
+          return 'commercial';
+        }
+        return 'commercial';
       }
 
-      function computeFiltered() {
-        var q = searchQ.trim().toLowerCase();
-        var out = [];
-        for (var i = 0; i < allPermits.length; i++) {
-          var p = allPermits[i];
-          if (!matchesWorkChip(p, workChip)) continue;
-          if (!matchesSearch(p, q)) continue;
-          out.push(i);
+      function matchesClassFilter(p, v) {
+        if (v === 'all') return true;
+        return permitClassBucket(p) === v;
+      }
+
+      function matchesCommunityFilter(p, v) {
+        if (v === 'all') return true;
+        const c = (p.communityname || '').trim();
+        return c === v;
+      }
+
+      function matchesCostFilter(p) {
+        const c = parseCost(p);
+        let lo = Number(costMinSlider.value);
+        let hi = Number(costMaxSlider.value);
+        if (lo > hi) {
+          const t = lo;
+          lo = hi;
+          hi = t;
         }
-        out.sort(function (a, b) {
-          var pa = allPermits[a];
-          var pb = allPermits[b];
-          if (sortKey === 'cost_desc') return parseCost(pb) - parseCost(pa);
-          if (sortKey === 'cost_asc') return parseCost(pa) - parseCost(pb);
-          if (sortKey === 'name') {
-            var na = String(pa.contractorname || '').toLowerCase();
-            var nb = String(pb.contractorname || '').toLowerCase();
+        return c >= lo && c <= hi;
+      }
+
+      function parseDateMs(p) {
+        const raw = p.issueddate || p.applieddate || '';
+        const t = Date.parse(raw);
+        return Number.isFinite(t) ? t : 0;
+      }
+
+      function getFilteredSortedItems() {
+        const n = allPermits.length;
+        const w = filterWork.value;
+        const cl = filterClass.value;
+        const com = filterCommunity.value;
+        const items = [];
+        for (let idx = 0; idx < n; idx++) {
+          const p = allPermits[idx];
+          if (!matchesWorkFilter(p, w)) continue;
+          if (!matchesClassFilter(p, cl)) continue;
+          if (!matchesCommunityFilter(p, com)) continue;
+          if (!matchesCostFilter(p)) continue;
+          items.push({ idx, p });
+        }
+        const sort = filterSort.value;
+        items.sort(function (a, b) {
+          if (sort === 'cost_desc') return parseCost(b.p) - parseCost(a.p);
+          if (sort === 'cost_asc') return parseCost(a.p) - parseCost(b.p);
+          if (sort === 'contractor') {
+            const na = (a.p.contractorname || '').toLowerCase();
+            const nb = (b.p.contractorname || '').toLowerCase();
             return na.localeCompare(nb, undefined, { sensitivity: 'base' });
           }
-          if (sortKey === 'oldest') return parseDateMs(pa) - parseDateMs(pb);
-          return parseDateMs(pb) - parseDateMs(pa);
+          return parseDateMs(b.p) - parseDateMs(a.p);
         });
-        return out;
+        return items;
       }
 
-      function selectedCount() {
-        var n = 0;
-        for (var k in selected) {
-          if (selected[k]) n++;
-        }
-        return n;
-      }
-
-      function isIndexSelected(idx) {
-        return Boolean(selected[String(idx)]);
-      }
-
-      function setSelected(idx, on) {
-        if (on) selected[String(idx)] = true;
-        else delete selected[String(idx)];
-      }
-
-      function clearSelection() {
-        selected = Object.create(null);
-      }
-
-      function visibleSelectedCount() {
-        var n = 0;
-        for (var i = 0; i < filtered.length; i++) {
-          if (isIndexSelected(filtered[i])) n++;
-        }
-        return n;
-      }
-
-      function syncSelectAllCb() {
-        var v = visibleSelectedCount();
-        if (!filtered.length) {
-          selectAllCb.checked = false;
-          selectAllCb.indeterminate = false;
-          return;
-        }
-        if (v === 0) {
-          selectAllCb.checked = false;
-          selectAllCb.indeterminate = false;
-        } else if (v === filtered.length) {
-          selectAllCb.checked = true;
-          selectAllCb.indeterminate = false;
-        } else {
-          selectAllCb.checked = false;
-          selectAllCb.indeterminate = true;
-        }
-      }
-
-      function updateSelbar() {
-        var n = selectedCount();
-        selCount.textContent = String(n);
-        selbar.classList.toggle('has-selection', n > 0);
-        summarySelected.textContent = String(n);
-        btnLaunch.disabled = n === 0;
-        btnSelectVisible.disabled = !filtered.length;
-        btnSelectNone.disabled = n === 0;
-        syncSelectAllCb();
-      }
-
-      function setFeedState(state, label) {
-        feedStatus.setAttribute('data-state', state);
-        feedStatusLabel.textContent = label;
-      }
-
-      function setCardMeta() {
-        cardMeta.innerHTML =
+      function updateFilterCounter(shown, total) {
+        filterCounter.innerHTML =
           'Showing <strong>' +
-          filtered.length +
+          shown +
           '</strong> of <strong>' +
-          allPermits.length +
-          '</strong>';
-        toolbarMeta.innerHTML = '<strong>' + filtered.length + '</strong> in view';
+          total +
+          '</strong> permits';
       }
 
-      function renderDetail(idx) {
-        if (idx == null || idx < 0 || idx >= allPermits.length) {
-          detailIdx = null;
-          detailEmpty.classList.remove('hidden');
-          detailRoot.classList.add('hidden');
-          detailCardMeta.textContent = '';
-          return;
-        }
-        detailIdx = idx;
-        var p = allPermits[idx];
-        detailEmpty.classList.add('hidden');
-        detailRoot.classList.remove('hidden');
-        var cname = (p.contractorname || '').trim();
-        detailName.textContent = cname || 'Unknown contractor';
-        detailName.classList.toggle('is-missing', !cname);
-        detailId.textContent = p.permitnum || '—';
-        detailCardMeta.textContent = p.communityname ? String(p.communityname) : '';
-
-        var units = p.numunits;
-        if (units == null || units === '') units = p.housingunits;
-        var owner = p.ownername || p.applicantname;
-
-        function ddPlain(val) {
-          if (val == null || val === '') return '<dd>—</dd>';
-          return '<dd>' + escapeHtml(String(val)) + '</dd>';
-        }
-        function ddMonoHtml(inner) {
-          return '<dd class="mono">' + inner + '</dd>';
-        }
-
-        var h = '';
-        h += '<dt>Permit #</dt>' + ddPlain(p.permitnum);
-        h += '<dt>Status</dt>' + ddPlain(p.statuscurrent);
-        h += '<dt>Applied</dt>' + (p.applieddate ? ddMonoHtml(formatDate(p.applieddate)) : '<dd>—</dd>');
-        h += '<dt>Issued</dt>' + (p.issueddate ? ddMonoHtml(formatDate(p.issueddate)) : '<dd>—</dd>');
-        h += '<dt>Contractor</dt>' + ddPlain(p.contractorname);
-        h += '<dt>Owner</dt>' + ddPlain(owner);
-        h += '<dt>Address</dt>' + ddPlain(p.originaladdress);
-        h += '<dt>Community</dt>' + ddPlain(p.communityname);
-        h += '<dt>Work class</dt>' + ddPlain(p.workclassgroup);
-        h += '<dt>Permit class</dt>' + ddPlain(p.permitclassgroup || p.permitclass);
-        h += '<dt>Description</dt>' + ddPlain(p.description);
-        h += '<dt>Est. cost</dt>' + ddMonoHtml(formatMoney(p.estprojectcost));
-        h +=
-          '<dt>Units</dt>' +
-          (units != null && units !== '' ? ddPlain(String(units)) : '<dd>—</dd>');
-        detailGrid.innerHTML = h;
-        detailRaw.textContent = JSON.stringify(p, null, 2);
+      function countActiveFilters() {
+        let n = 0;
+        if (filterWork.value !== 'all') n++;
+        if (filterClass.value !== 'all') n++;
+        if (filterCommunity.value !== 'all') n++;
+        const lo = Number(costMinSlider.value);
+        const hi = Number(costMaxSlider.value);
+        if (lo !== costDataMin || hi !== costDataMax) n++;
+        if (filterSort.value !== 'date') n++;
+        return n;
       }
 
-      function openDetail(idx) {
-        renderDetail(idx);
+      function updateFilterToggleLabel() {
+        const c = countActiveFilters();
+        filterToggle.textContent = c ? '⚙ Filters (' + c + ')' : '⚙ Filters';
       }
 
-      function rowStatusLine(idx) {
-        var p = allPermits[idx];
-        var key = p && p.permitnum != null ? String(p.permitnum) : '';
-        var st = key && statusByPermit[key];
-        var date = formatDateText(allPermits[idx].applieddate);
-        if (!st) return date;
-        var short =
-          st === 'Postcard Sent'
-            ? 'Sent'
-            : st === 'Copy Generated'
-              ? 'Copy ok'
-              : st === 'Failed'
-                ? 'Failed'
-                : st;
-        return date + '\n' + short;
+      function formatCostShort(n) {
+        if (!Number.isFinite(n)) return '$0';
+        if (n >= 1e6) return '$' + (n / 1e6).toFixed(1) + 'M';
+        if (n >= 1000) return '$' + (n / 1000).toFixed(0) + 'k';
+        return '$' + Math.round(n);
       }
 
-      function renderFeed() {
-        feedScroll.innerHTML = '';
-        if (!allPermits.length) {
-          var empty = document.createElement('div');
-          empty.className = 'feed-empty';
-          empty.innerHTML = '<h3>No permits loaded</h3><p>Try refreshing the page.</p>';
-          feedScroll.appendChild(empty);
-          return;
+      function initCostRangeFromData() {
+        const costs = allPermits.map(parseCost);
+        let minC = costs.length ? Math.min.apply(null, costs) : 0;
+        let maxC = costs.length ? Math.max.apply(null, costs) : 1;
+        if (!Number.isFinite(minC)) minC = 0;
+        if (!Number.isFinite(maxC)) maxC = 1;
+        if (minC === maxC) {
+          maxC = minC + 1;
         }
-        if (!filtered.length) {
-          var fe = document.createElement('div');
-          fe.className = 'feed-empty';
-          fe.innerHTML = '<h3>No matches</h3><p>Adjust search or filters to see permits.</p>';
-          feedScroll.appendChild(fe);
-          return;
+        costDataMin = minC;
+        costDataMax = maxC;
+        const step = Math.max(1, Math.round((maxC - minC) / 200) || 1);
+        costMinSlider.min = String(minC);
+        costMinSlider.max = String(maxC);
+        costMinSlider.step = String(step);
+        costMaxSlider.min = String(minC);
+        costMaxSlider.max = String(maxC);
+        costMaxSlider.step = String(step);
+        costMinSlider.value = String(minC);
+        costMaxSlider.value = String(maxC);
+        syncCostSliderLabels();
+      }
+
+      function syncCostSliderLabels() {
+        costMinLabel.textContent = formatCostShort(Number(costMinSlider.value));
+        costMaxLabel.textContent = formatCostShort(Number(costMaxSlider.value));
+      }
+
+      function clampCostSliders() {
+        let lo = Number(costMinSlider.value);
+        let hi = Number(costMaxSlider.value);
+        costMinSlider.value = String(Math.min(lo, hi));
+        costMaxSlider.value = String(Math.max(lo, hi));
+        syncCostSliderLabels();
+      }
+
+      function populateCommunityOptions() {
+        const set = new Set();
+        allPermits.forEach(function (p) {
+          const c = (p.communityname || '').trim();
+          if (c) set.add(c);
+        });
+        const list = Array.from(set).sort(function (a, b) {
+          return a.localeCompare(b, undefined, { sensitivity: 'base' });
+        });
+        const cur = filterCommunity.value;
+        filterCommunity.innerHTML = '<option value="all">All</option>';
+        list.forEach(function (name) {
+          const opt = document.createElement('option');
+          opt.value = name;
+          opt.textContent = name;
+          filterCommunity.appendChild(opt);
+        });
+        if (cur !== 'all' && list.indexOf(cur) >= 0) {
+          filterCommunity.value = cur;
+        } else {
+          filterCommunity.value = 'all';
         }
-        for (var i = 0; i < filtered.length; i++) {
-          var idx = filtered[i];
-          var p = allPermits[idx];
-          var wt = workType(p);
-          var bKey = workBadgeKey(wt);
-          var bClass = badgeClassForKey(bKey);
-          var bText =
-            bKey === 'new'
-              ? 'New'
-              : bKey === 'improvement'
-                ? 'Improvement'
-                : bKey === 'addition'
-                  ? 'Addition'
-                  : bKey === 'demolition'
-                    ? 'Demolition'
-                    : wt
-                      ? String(wt).slice(0, 18) + (String(wt).length > 18 ? '…' : '')
-                      : '—';
+      }
 
-          var row = document.createElement('div');
-          row.className = 'row';
-          row.setAttribute('data-idx', String(idx));
-          row.classList.toggle('is-selected', isIndexSelected(idx));
-          row.classList.toggle('is-active', detailIdx === idx);
-
-          var cb = document.createElement('input');
-          cb.type = 'checkbox';
-          cb.className = 'cb';
-          cb.setAttribute('aria-label', 'Select ' + (p.permitnum || 'permit'));
-          cb.checked = isIndexSelected(idx);
-          cb.addEventListener('click', function (e) {
-            e.stopPropagation();
-          });
-          cb.addEventListener('change', function () {
-            setSelected(idx, cb.checked);
-            updateSelbar();
-            renderFeed();
-          });
-
-          var main = document.createElement('div');
-          main.className = 'row-main';
-          var nm = document.createElement('div');
-          nm.className = 'row-name' + (!(p.contractorname || '').trim() ? ' is-missing' : '');
-          nm.textContent = (p.contractorname || '').trim() || 'Unknown contractor';
-          var rid = document.createElement('div');
-          rid.className = 'row-id';
-          rid.textContent = p.permitnum || '—';
-          main.appendChild(nm);
-          main.appendChild(rid);
-
-          var addr = document.createElement('div');
-          addr.className = 'row-addr';
-          var ln = document.createElement('div');
-          ln.className = 'row-addr-line';
-          ln.textContent = p.originaladdress || p.address || '—';
-          var com = document.createElement('div');
-          com.className = 'row-addr-com';
-          com.textContent = p.communityname || '';
-          addr.appendChild(ln);
-          addr.appendChild(com);
-
-          var costCol = document.createElement('div');
-          var cost = document.createElement('div');
-          cost.className = 'row-cost' + (parseCost(p) === 0 ? ' is-zero' : '');
-          cost.textContent = formatMoneyPlain(p.estprojectcost);
-          var dt = document.createElement('div');
-          dt.className = 'row-date';
-          dt.textContent = rowStatusLine(idx);
-          costCol.appendChild(cost);
-          costCol.appendChild(dt);
-
-          var badge = document.createElement('span');
-          badge.className = bClass;
-          badge.textContent = bText;
-
-          row.appendChild(cb);
-          row.appendChild(main);
-          row.appendChild(addr);
-          row.appendChild(costCol);
-          row.appendChild(badge);
-
-          row.addEventListener('click', function () {
-            openDetail(idx);
-            renderFeed();
-          });
-
-          feedScroll.appendChild(row);
+      function resetFiltersToDefaults() {
+        filterWork.value = 'all';
+        filterClass.value = 'all';
+        filterCommunity.value = 'all';
+        filterSort.value = 'date';
+        if (allPermits.length) {
+          initCostRangeFromData();
         }
+      }
+
+      function bindFilterListeners() {
+        if (filterListenersBound) return;
+        filterListenersBound = true;
+        function onFilterChange() {
+          applyFilters();
+        }
+        filterWork.addEventListener('change', onFilterChange);
+        filterClass.addEventListener('change', onFilterChange);
+        filterCommunity.addEventListener('change', onFilterChange);
+        filterSort.addEventListener('change', onFilterChange);
+        costMinSlider.addEventListener('input', function () {
+          clampCostSliders();
+          onFilterChange();
+        });
+        costMaxSlider.addEventListener('input', function () {
+          clampCostSliders();
+          onFilterChange();
+        });
+        filterReset.addEventListener('click', function () {
+          resetFiltersToDefaults();
+          filterDrawer.classList.remove('is-open');
+          filterToggle.setAttribute('aria-expanded', 'false');
+          applyFilters();
+        });
+        filterToggle.addEventListener('click', function () {
+          const isOpen = filterDrawer.classList.toggle('is-open');
+          filterToggle.setAttribute('aria-expanded', String(isOpen));
+        });
+      }
+
+      function applyFilters() {
+        if (!allPermits.length) return;
+        const items = getFilteredSortedItems();
+        if (detailIdx !== null && !items.some(function (it) {
+          return it.idx === detailIdx;
+        })) {
+          closeDetail();
+        }
+        updateFilterCounter(items.length, allPermits.length);
+        updateFilterToggleLabel();
+        renderPermitCards(items);
       }
 
       function showSkeleton() {
-        feedScroll.innerHTML = '';
-        for (var s = 0; s < 8; s++) {
-          var sr = document.createElement('div');
-          sr.className = 'skel-row';
-          for (var c = 0; c < 5; c++) {
-            var sk = document.createElement('div');
-            sk.className = 'skel';
-            sr.appendChild(sk);
-          }
-          feedScroll.appendChild(sr);
+        feedToolbar.classList.add('hidden');
+        filterDrawer.classList.remove('is-open');
+        filterToggle.setAttribute('aria-expanded', 'false');
+        permitsFeed.innerHTML = '';
+        const stack = document.createElement('div');
+        stack.className = 'skeleton-stack';
+        for (let i = 0; i < 6; i++) {
+          const sk = document.createElement('div');
+          sk.className = 'sk-card';
+          sk.style.animationDelay = i * 50 + 'ms';
+          stack.appendChild(sk);
         }
+        permitsFeed.appendChild(stack);
       }
 
-      function setChipsUi() {
-        chipAll.setAttribute('aria-pressed', workChip === 'all' ? 'true' : 'false');
-        chipNew.setAttribute('aria-pressed', workChip === 'new' ? 'true' : 'false');
-        chipImprovement.setAttribute('aria-pressed', workChip === 'improvement' ? 'true' : 'false');
-        chipAddition.setAttribute('aria-pressed', workChip === 'addition' ? 'true' : 'false');
-        chipDemolition.setAttribute('aria-pressed', workChip === 'demolition' ? 'true' : 'false');
-      }
+      function renderPermitCards(items) {
+        permitsFeed.innerHTML = '';
+        items.forEach(function (item, displayIndex) {
+          const idx = item.idx;
+          const p = item.p;
+          const wt = workType(p);
+          const bClass = workBadgeClass(wt);
+          const card = document.createElement('article');
+          card.className = 'feed-card';
+          card.setAttribute('data-idx', String(idx));
+          card.style.animationDelay = Math.min(displayIndex, 20) * 50 + 'ms';
 
-      function setWorkChip(chip) {
-        workChip = chip;
-        setChipsUi();
-        refresh();
-      }
+          const permitnum = escapeHtml(p.permitnum || '—');
+          const contractor = escapeHtml(p.contractorname || '—');
+          const addr = escapeHtml(p.originaladdress || p.address || '—');
+          const cost = formatMoney(p.estprojectcost);
+          const applied = formatDate(p.applieddate);
+          const wtEsc = escapeHtml(wt || '—');
 
-      function refresh() {
-        filtered = computeFiltered();
-        if (detailIdx != null && filtered.indexOf(detailIdx) === -1) {
-          openDetail(null);
-        }
-        setCardMeta();
-        renderFeed();
-        updateSelbar();
-      }
-
-      function bindChip(el, chip) {
-        el.addEventListener('click', function () {
-          setWorkChip(chip);
-        });
-      }
-
-      function tickClock() {
-        var fmt = new Intl.DateTimeFormat('en-CA', {
-          timeZone: 'America/Edmonton',
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-          hour12: false,
-        });
-        clockEl.textContent = fmt.format(new Date());
-      }
-
-      function loadPermits() {
-        setFeedState('loading', 'Loading permits…');
-        showSkeleton();
-        fetch('/permits')
-          .then(function (r) {
-            return r.json().then(function (j) {
-              return { ok: r.ok, j: j, status: r.status };
-            });
-          })
-          .then(function (x) {
-            if (!x.ok) {
-              var msg =
-                (x.j && (x.j.error || x.j.detail)) || 'Request failed (' + x.status + ')';
-              throw new Error(msg);
-            }
-            if (!Array.isArray(x.j)) throw new Error('Invalid feed payload');
-            allPermits = x.j;
-            statusByPermit = {};
-            clearSelection();
-            setFeedState('ok', String(allPermits.length) + ' permits · last 14d · cap 25');
-            refresh();
-            openDetail(null);
-          })
-          .catch(function (e) {
-            allPermits = [];
-            filtered = [];
-            feedScroll.innerHTML =
-              '<div class="feed-error"><h3>Feed error</h3><p>' +
-              escapeHtml(e.message || String(e)) +
-              '</p></div>';
-            setFeedState('error', 'Feed offline');
-            setCardMeta();
-            updateSelbar();
-          });
-      }
-
-      function updateSendToggleVisual() {
-        sendToggleLabel.classList.toggle('is-on', sendInput.checked);
-        summarySendLabel.textContent = sendInput.checked ? 'On' : 'Off';
-      }
-
-      function setModalProgress(done, total, text) {
-        var pct = total ? Math.round((done / total) * 100) : 0;
-        progressFill.style.width = pct + '%';
-        modalProgressText.textContent = text;
-      }
-
-      function applyResultRow(rowEl, row, delay) {
-        return new Promise(function (resolve) {
-          setTimeout(function () {
-            var check = rowEl.querySelector('.check');
-            var copyEl = rowEl.querySelector('.copy-text');
-            var statusEl = rowEl.querySelector('.status');
-            var ok = row.postcardStatus !== 'Failed';
-            check.className = 'check ' + (ok ? 'done' : 'fail');
-            check.textContent = ok ? '✓' : '!';
-            var copy = truncatePostcardCopy(row.copy || '', 300);
-            copyEl.textContent = copy || '(No copy)';
-            copyEl.classList.remove('hidden');
-            statusEl.className =
-              'status ' +
-              (row.postcardStatus === 'Postcard Sent'
-                ? 'sent'
-                : row.postcardStatus === 'Failed'
-                  ? 'error'
-                  : 'queued');
-            statusEl.textContent = row.postcardStatus || '—';
-            resolve();
-          }, delay);
-        });
-      }
-
-      async function runPipelineUi(permitsPayload) {
-        modalList.innerHTML = '';
-        modalFootSummary.innerHTML = '<strong>' + permitsPayload.length + '</strong> permits';
-        setModalProgress(0, permitsPayload.length, 'Running…');
-        for (var i = 0; i < permitsPayload.length; i++) {
-          var p = permitsPayload[i];
-          var mr = document.createElement('div');
-          mr.className = 'modal-row';
-          mr.innerHTML =
-            '<div class="check pending"></div>' +
-            '<div><div class="name' +
-            (!(p.contractorname || '').trim() ? ' missing' : '') +
+          card.innerHTML =
+            '<div class="cb-wrap"><input type="checkbox" class="perm-cb" aria-label="Select ' +
+            permitnum +
+            '" /></div>' +
+            '<span class="badge-wt ' +
+            bClass +
             '">' +
-            escapeHtml((p.contractorname || '').trim() || 'Unknown contractor') +
-            '</div>' +
-            '<div class="copy-text hidden"></div>' +
-            '<div class="meta">' +
-            escapeHtml(p.permitnum || '') +
-            '</div></div>' +
-            '<div class="status running">Running</div>';
-          modalList.appendChild(mr);
-        }
+            wtEsc +
+            '</span>' +
+            '<p class="mono-id">' +
+            permitnum +
+            '</p>' +
+            '<p class="feed-title">' +
+            contractor +
+            '</p>' +
+            '<p class="feed-meta">' +
+            addr +
+            '<br/><span class="mono-cyan">' +
+            cost +
+            '</span> · applied ' +
+            applied +
+            '</p>';
 
-        var res;
-        try {
-          res = await fetch('/run', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ permits: permitsPayload, send: sendInput.checked }),
+          const cb = card.querySelector('.perm-cb');
+          cb.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            toggleIndex(idx);
           });
-        } catch (err) {
-          modalProgressText.textContent = 'Network error: ' + (err.message || String(err));
-          return;
-        }
-        var data = await res.json().catch(function () {
-          return null;
+          card.addEventListener('click', function (e) {
+            if (e.target.closest('.perm-cb') || e.target.closest('.cb-wrap')) return;
+            openDetail(idx);
+          });
+
+          permitsFeed.appendChild(card);
         });
-        if (!res.ok) {
-          var msg = (data && (data.error || data.detail)) || 'Request failed (' + res.status + ')';
-          modalProgressText.textContent = msg;
-          return;
-        }
-        if (!Array.isArray(data)) {
-          modalProgressText.textContent = 'Invalid response';
-          return;
-        }
-
-        for (var j = 0; j < data.length; j++) {
-          var row = data[j];
-          if (row.permitnum) statusByPermit[String(row.permitnum)] = row.postcardStatus || '';
-          var el = modalList.children[j];
-          if (el) await applyResultRow(el, row, 55 * j);
-          setModalProgress(j + 1, data.length, 'Processed ' + (j + 1) + ' of ' + data.length);
-        }
-        modalProgressText.textContent = 'Complete';
+        updateRowClasses();
       }
 
-      function closeModal() {
-        modalVeil.classList.add('hidden');
+      function onFreshDataLoaded() {
+        closeDetail();
+        selected.clear();
+        feedToolbar.classList.remove('hidden');
+        filterDrawer.classList.remove('is-open');
+        filterToggle.setAttribute('aria-expanded', 'false');
+        bindFilterListeners();
+        populateCommunityOptions();
+        initCostRangeFromData();
+        filterWork.value = 'all';
+        filterClass.value = 'all';
+        filterCommunity.value = 'all';
+        filterSort.value = 'date';
+        applyFilters();
+        updateFilterToggleLabel();
       }
 
-      function openModal() {
-        modalVeil.classList.remove('hidden');
-        modalClose.focus();
+      async function loadPermits() {
+        permitsLoadMsg.textContent = 'pulling stream…';
+        showSkeleton();
+        try {
+          const res = await fetch('/permits');
+          const data = await res.json().catch(function () {
+            return null;
+          });
+          if (!res.ok) {
+            throw new Error(
+              (data && (data.error || data.detail)) || 'Feed error (' + res.status + ')',
+            );
+          }
+          if (!Array.isArray(data)) throw new Error('Invalid feed payload');
+          allPermits = data;
+          onFreshDataLoaded();
+          permitsLoadMsg.textContent =
+            String(allPermits.length) + ' rows · last 14d · cap 25';
+        } catch (e) {
+          allPermits = [];
+          feedToolbar.classList.add('hidden');
+          filterDrawer.classList.remove('is-open');
+          permitsFeed.innerHTML =
+            '<p style="padding:1rem;color:var(--accent);font-size:0.85rem">' +
+            escapeHtml(e.message || String(e)) +
+            '</p>';
+          permitsLoadMsg.textContent = 'feed offline';
+          updateRowClasses();
+        }
       }
 
-      selectAllCb.addEventListener('change', function () {
-        if (!filtered.length) return;
-        var want = selectAllCb.checked;
-        for (var i = 0; i < filtered.length; i++) {
-          setSelected(filtered[i], want);
+      function streamText(el, fullText, msPerChar) {
+        return new Promise(function (resolve) {
+          let i = 0;
+          const tick = function () {
+            if (i <= fullText.length) {
+              el.textContent = fullText.slice(0, i);
+              i++;
+              setTimeout(tick, msPerChar);
+            } else resolve();
+          };
+          tick();
+        });
+      }
+
+      function statusRibbon(status) {
+        if (status === 'Postcard Sent') return ['sent', 'SENT'];
+        if (status === 'Copy Generated') return ['queued', 'QUEUED'];
+        return ['failed', 'FAILED'];
+      }
+
+      function renderPostcard(row, i) {
+        const wrap = document.createElement('div');
+        wrap.className = 'postcard-wrap';
+        wrap.style.animationDelay = i * 80 + 'ms';
+        const fullCopy = truncatePostcardCopy(row.copy || '', 300);
+        const addr = escapeHtml(row.address || '—');
+        const rib = statusRibbon(row.postcardStatus || 'Failed');
+        const shell = document.createElement('div');
+        shell.className = 'postcard-shell postcard-shell--filled';
+        shell.innerHTML =
+          '<div class="pc-main">' +
+          '<div class="pc-col-left">' +
+          '<div class="pc-status pc-status--' +
+          rib[0] +
+          '">' +
+          rib[1] +
+          '</div>' +
+          '<div class="pc-brand">YYC ProBuild</div>' +
+          '<div class="pc-copy">' +
+          escapeHtml(fullCopy) +
+          '</div>' +
+          '</div>' +
+          '<div class="pc-col-right">' +
+          '<div class="pc-stamp">CANADA<br/>POST</div>' +
+          '<div class="pc-addr-mono">' +
+          addr +
+          '</div>' +
+          '</div>' +
+          '</div>' +
+          '<div class="pc-strip">Automated direct mail · Calgary permit mailer</div>';
+        wrap.appendChild(shell);
+        return wrap;
+      }
+
+      function updateCostEstimate() {
+        const inputCost = tokenCount * 0.00015 + postcardCount * 0.85;
+        pipelineCostEl.textContent = '~$' + inputCost.toFixed(2);
+      }
+
+      async function playAiSequence(rows) {
+        aiIdle.classList.add('hidden');
+        aiLog.classList.remove('hidden');
+        aiLog.innerHTML = '';
+        for (let i = 0; i < rows.length; i++) {
+          const row = rows[i];
+          const block = document.createElement('div');
+          block.className = 'ai-block contractor-in';
+          const head = document.createElement('div');
+          head.className = 'ai-block-head';
+          head.innerHTML =
+            '<span class="ai-name">' +
+            escapeHtml(row.contractorname || 'Contractor') +
+            '</span><span class="mono-id">' +
+            escapeHtml(row.permitnum || '') +
+            '</span>';
+          const copyEl = document.createElement('div');
+          copyEl.className = 'ai-copy';
+          const cursor = document.createElement('span');
+          cursor.className = 'ai-cursor';
+          block.appendChild(head);
+          block.appendChild(copyEl);
+          block.appendChild(cursor);
+          aiLog.appendChild(block);
+          aiLog.scrollTop = aiLog.scrollHeight;
+
+          const full = row.copy || '(No copy generated)';
+          const ms = Math.max(8, Math.min(22, Math.floor(1200 / Math.max(full.length, 40))));
+          await streamText(copyEl, full, ms);
+          cursor.remove();
+          const add = 320 + Math.floor(Math.random() * 520);
+          const prev = tokenCount;
+          tokenCount += add;
+          animateNumber(statTokens, prev, tokenCount, 400);
+          if (row.copy && row.postcardStatus !== 'Failed') {
+            postcardCount++;
+            statPostcards.textContent = String(postcardCount);
+          }
+          updateCostEstimate();
+          const chk = document.createElement('span');
+          chk.className = 'ai-check';
+          chk.textContent = '✓';
+          head.appendChild(chk);
+          block.style.opacity = '0.92';
+          await new Promise(function (r) {
+            setTimeout(r, 180);
+          });
         }
-        updateSelbar();
-        renderFeed();
-      });
+      }
 
-      btnSelectVisible.addEventListener('click', function () {
-        for (var i = 0; i < filtered.length; i++) {
-          setSelected(filtered[i], true);
-        }
-        updateSelbar();
-        renderFeed();
-      });
+      function resetAiIdle() {
+        aiLog.classList.add('hidden');
+        aiLog.innerHTML = '';
+        aiIdle.classList.remove('hidden');
+        aiIdleMsg.textContent = 'Neural queue idle — select permits and launch.';
+      }
 
-      btnSelectNone.addEventListener('click', function () {
-        clearSelection();
-        updateSelbar();
-        renderFeed();
-      });
+      runBtn.addEventListener('click', async function () {
+        resultsError.classList.remove('visible');
+        resultsError.textContent = '';
+        closeDetail();
 
-      searchInput.addEventListener('input', function () {
-        searchQ = searchInput.value;
-        refresh();
-      });
-
-      sortSelect.addEventListener('change', function () {
-        sortKey = sortSelect.value;
-        refresh();
-      });
-
-      bindChip(chipAll, 'all');
-      bindChip(chipNew, 'new');
-      bindChip(chipImprovement, 'improvement');
-      bindChip(chipAddition, 'addition');
-      bindChip(chipDemolition, 'demolition');
-
-      sendInput.addEventListener('change', updateSendToggleVisual);
-      updateSendToggleVisual();
-
-      btnLaunch.addEventListener('click', function () {
-        var indices = [];
-        for (var k in selected) {
-          if (selected[k]) indices.push(Number(k));
-        }
-        indices.sort(function (a, b) {
+        const indices = Array.from(selected).sort(function (a, b) {
           return a - b;
         });
-        if (!indices.length) return;
-        var payload = indices.map(function (i) {
+        const toRun = indices.map(function (i) {
           return allPermits[i];
         });
-        openModal();
-        progressFill.style.width = '0%';
-        modalProgressText.textContent = 'Starting…';
-        runPipelineUi(payload).then(function () {
-          refresh();
-        });
+        if (!toRun.length) return;
+
+        const send = sendInput.checked;
+        runBtn.disabled = true;
+        runBtn.classList.add('is-running');
+        setPipelineUi(0);
+        setTimeout(function () {
+          setPipelineUi(1);
+        }, 220);
+
+        mailStack.innerHTML = '';
+        mailStack.classList.add('hidden');
+        mailEmpty.classList.remove('hidden');
+        resetAiIdle();
+        tokenCount = 0;
+        postcardCount = 0;
+        statTokens.textContent = '0';
+        statPostcards.textContent = '0';
+        updateCostEstimate();
+
+        try {
+          const res = await fetch('/run', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ permits: toRun, send }),
+          });
+          const data = await res.json().catch(function () {
+            return null;
+          });
+
+          if (!res.ok) {
+            const msg =
+              (data && (data.error || data.detail)) ||
+              'Request failed (' + res.status + ')';
+            throw new Error(msg);
+          }
+          if (!Array.isArray(data)) throw new Error('Invalid response');
+
+          setPipelineUi(2);
+          await playAiSequence(data);
+          setPipelineUi(3);
+
+          mailEmpty.classList.add('hidden');
+          mailStack.classList.remove('hidden');
+          data.forEach(function (row, i) {
+            mailStack.appendChild(renderPostcard(row, i));
+          });
+
+          mainGrid.classList.add('success-flash');
+          setTimeout(function () {
+            mainGrid.classList.remove('success-flash');
+          }, 700);
+        } catch (e) {
+          resetAiIdle();
+          aiIdleMsg.textContent = e.message || String(e);
+          resultsError.textContent = e.message || String(e);
+          resultsError.classList.add('visible');
+          setPipelineUi('idle');
+        } finally {
+          runBtn.classList.remove('is-running');
+          runBtn.disabled = selected.size === 0;
+          setTimeout(function () {
+            setPipelineUi('idle');
+          }, 900);
+          updateRowClasses();
+        }
       });
 
-      modalClose.addEventListener('click', closeModal);
-      modalDone.addEventListener('click', closeModal);
-      modalVeil.addEventListener('click', function (e) {
-        if (e.target === modalVeil) closeModal();
-      });
+      detailClose.addEventListener('click', closeDetail);
+      detailBackdrop.addEventListener('click', closeDetail);
       document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape' && !modalVeil.classList.contains('hidden')) closeModal();
+        if (e.key === 'Escape' && detailIdx !== null) closeDetail();
       });
 
-      tickClock();
-      setInterval(tickClock, 1000);
-      setChipsUi();
       loadPermits();
     })();
   </script>
