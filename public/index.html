@@ -100,7 +100,7 @@
             <h2 class="card-title">Permit detail</h2>
             <p class="card-meta" id="detail-card-meta"></p>
           </div>
-          <button type="button" class="btn btn-ghost" id="detail-close" aria-label="Close detail">×</button>
+          <button type="button" class="btn btn-ghost hidden" id="detail-close" aria-label="Close detail">×</button>
         </div>
         <div class="side-card">
           <div class="detail-empty" id="detail-empty">
@@ -478,12 +478,14 @@
           detailEmpty.classList.remove('hidden');
           detailRoot.classList.add('hidden');
           detailCardMeta.textContent = '';
+          detailClose.classList.add('hidden');
           return;
         }
         detailIdx = idx;
         var p = allPermits[idx];
         detailEmpty.classList.add('hidden');
         detailRoot.classList.remove('hidden');
+        detailClose.classList.remove('hidden');
         var cname = (p.contractorname || '').trim();
         detailName.textContent = cname || 'Unknown contractor';
         detailName.classList.toggle('is-missing', !cname);
