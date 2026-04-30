@@ -3,7 +3,7 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const { fetchPermits } = require('./fetchPermits');
-const { runPipeline, recipientFromEnv } = require('./pipeline');
+const { runPipeline } = require('./pipeline');
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
@@ -60,23 +60,11 @@ app.post('/run', async (req, res) => {
     return;
   }
 
-  if (send && !recipientFromEnv()) {
-    res.status(400).json({
-      error:
-        'send is true but PostGrid recipient env vars are missing (POSTGRID_TO_ADDRESS_LINE1, POSTGRID_TO_POSTAL_OR_ZIP).',
-    });
-    return;
-  }
-
   try {
     const results = await runPipeline({ permits, send });
     res.json(results);
   } catch (err) {
     const msg = err.message || String(err);
-    if (msg.includes('POSTGRID_TO_')) {
-      res.status(400).json({ error: msg });
-      return;
-    }
     console.error('/run error:', err);
     res.status(500).json({ error: 'Pipeline failed', detail: msg });
   }

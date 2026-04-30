@@ -3,6 +3,38 @@ const axios = require('axios');
 const DEFAULT_BASE =
   process.env.POSTGRID_API_BASE || 'https://api.postgrid.com/print-mail/v1';
 
+const DEFAULT_POSTAL = 'T2P 0A1';
+
+/**
+ * Build PostGrid recipient `to` from Calgary permit fields (site address).
+ *
+ * @param {object} permit
+ * @returns {{ firstName: string, lastName: string, addressLine1: string, city: string, provinceOrState: string, postalOrZip: string, countryCode: string }}
+ */
+function recipientFromPermit(permit) {
+  const p = permit && typeof permit === 'object' ? permit : {};
+  const rawName = (p.contractorname && String(p.contractorname).trim()) || 'Contractor';
+  const parts = rawName.split(/\s+/).filter(Boolean);
+  const firstName = parts[0] || 'Contractor';
+  const lastName = parts.length > 1 ? parts.slice(1).join(' ') : '.';
+
+  const addrRaw =
+    (p.originaladdress && String(p.originaladdress).trim()) ||
+    (p.address && String(p.address).trim()) ||
+    '';
+  const addressLine1 = addrRaw.split(/\n/)[0].trim() || 'Calgary, AB';
+
+  return {
+    firstName,
+    lastName,
+    addressLine1,
+    city: 'Calgary',
+    provinceOrState: 'AB',
+    postalOrZip: DEFAULT_POSTAL,
+    countryCode: 'CA',
+  };
+}
+
 /**
  * Create and send a postcard via PostGrid Print & Mail API.
  *
@@ -39,4 +71,4 @@ async function sendPostcard(body) {
   return data;
 }
 
-module.exports = { sendPostcard, DEFAULT_BASE };
+module.exports = { sendPostcard, DEFAULT_BASE, recipientFromPermit };
