@@ -3,13 +3,12 @@ const axios = require('axios');
 const DEFAULT_BASE =
   process.env.POSTGRID_API_BASE || 'https://api.postgrid.com/print-mail/v1';
 
-const DEFAULT_POSTAL = 'T2P 0A1';
-
 /**
- * Build PostGrid recipient `to` from Calgary permit fields (site address).
+ * Build PostGrid recipient `to` from fields on the permit only.
+ * Returns null if there is no site address on the record (no fallbacks).
  *
  * @param {object} permit
- * @returns {{ firstName: string, lastName: string, addressLine1: string, city: string, provinceOrState: string, postalOrZip: string, countryCode: string }}
+ * @returns {{ firstName: string, lastName: string, addressLine1: string, city?: string, provinceOrState?: string, postalOrZip?: string, countryCode?: string } | null}
  */
 function recipientFromPermit(permit) {
   const p = permit && typeof permit === 'object' ? permit : {};
@@ -22,17 +21,36 @@ function recipientFromPermit(permit) {
     (p.originaladdress && String(p.originaladdress).trim()) ||
     (p.address && String(p.address).trim()) ||
     '';
-  const addressLine1 = addrRaw.split(/\n/)[0].trim() || 'Calgary, AB';
+  const addressLine1 = addrRaw.split(/\n/)[0].trim();
+  if (!addressLine1) return null;
 
-  return {
+  const out = {
     firstName,
     lastName,
     addressLine1,
-    city: 'Calgary',
-    provinceOrState: 'AB',
-    postalOrZip: DEFAULT_POSTAL,
-    countryCode: 'CA',
   };
+
+  const city = p.city != null && String(p.city).trim() ? String(p.city).trim() : '';
+  const provinceOrState =
+    (p.provincestate && String(p.provincestate).trim()) ||
+    (p.province && String(p.province).trim()) ||
+    '';
+  const postalOrZip =
+    (p.postalcode && String(p.postalcode).trim()) ||
+    (p.postalzip && String(p.postalzip).trim()) ||
+    (p.zip && String(p.zip).trim()) ||
+    '';
+  const countryCode =
+    (p.countrycode && String(p.countrycode).trim()) ||
+    (p.country && String(p.country).trim()) ||
+    '';
+
+  if (city) out.city = city;
+  if (provinceOrState) out.provinceOrState = provinceOrState;
+  if (postalOrZip) out.postalOrZip = postalOrZip;
+  if (countryCode) out.countryCode = countryCode;
+
+  return out;
 }
 
 /**
