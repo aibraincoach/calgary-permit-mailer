@@ -1348,6 +1348,18 @@
           .replace(/"/g, '&quot;');
       }
 
+      /** Fallback if API copy exceeds postcard print limit (prompt is source of truth). */
+      function truncatePostcardCopy(s, maxLen) {
+        var max = maxLen == null ? 300 : maxLen;
+        var str = String(s);
+        if (str.length <= max) return str;
+        var budget = max - 3;
+        var slice = str.slice(0, budget);
+        var lastSpace = slice.lastIndexOf(' ');
+        if (lastSpace > 0) slice = slice.slice(0, lastSpace);
+        return slice.replace(/\s+$/g, '') + '...';
+      }
+
       function formatMoney(v) {
         if (v == null || v === '') return '—';
         const n = Number(v);
@@ -1969,7 +1981,7 @@
         const wrap = document.createElement('div');
         wrap.className = 'postcard-wrap';
         wrap.style.animationDelay = i * 80 + 'ms';
-        const fullCopy = row.copy || '';
+        const fullCopy = truncatePostcardCopy(row.copy || '', 300);
         const addr = escapeHtml(row.address || '—');
         const rib = statusRibbon(row.postcardStatus || 'Failed');
         const shell = document.createElement('div');
