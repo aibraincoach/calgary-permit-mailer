@@ -8,29 +8,15 @@ const { runPipeline, recipientFromEnv } = require('./pipeline');
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 
-const PERMITS_DEFAULT_LIMIT = 50;
+const PERMITS_DEFAULT_LIMIT = 25;
 const PERMITS_DEFAULT_DAYS = 14;
-const PERMITS_MAX_LIMIT = 10000;
 
 app.use(express.json({ limit: '2mb' }));
 
-app.get('/permits', async (req, res) => {
+app.get('/permits', async (_req, res) => {
   try {
-    let limit = PERMITS_DEFAULT_LIMIT;
-    const raw = req.query && req.query.limit;
-    if (raw != null && String(raw).trim() !== '') {
-      const s = String(raw).trim().toLowerCase();
-      if (s === 'all') {
-        limit = PERMITS_MAX_LIMIT;
-      } else {
-        const n = parseInt(s, 10);
-        if (Number.isFinite(n) && n > 0) {
-          limit = Math.min(n, PERMITS_MAX_LIMIT);
-        }
-      }
-    }
     const permits = await fetchPermits({
-      limit,
+      limit: PERMITS_DEFAULT_LIMIT,
       daysBack: PERMITS_DEFAULT_DAYS,
     });
     res.json(permits);
