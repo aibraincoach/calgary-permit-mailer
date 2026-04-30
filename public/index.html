@@ -34,8 +34,8 @@
       <section class="intro">
         <h1>Turn new permits into postcards</h1>
         <p>
-          Pull Calgary building permits, generate short copy, and optionally send test postcards through PostGrid.
-          Operated by AI Brain Coach. Select rows, review details on the right, then launch the pipeline.
+          Automatically turn Calgary building permits into personalized direct mail. Select contractors from the live feed, generate
+          friendly outreach copy with GPT-4o-mini, and send physical postcards via PostGrid and Canada Post.
         </p>
       </section>
 
@@ -240,7 +240,7 @@
       }
 
       function truncatePostcardCopy(s, maxLen) {
-        var max = maxLen == null ? 200 : maxLen;
+        var max = maxLen == null ? 400 : maxLen;
         var str = String(s);
         if (str.length <= max) return str;
         var budget = max - 3;
@@ -807,7 +807,7 @@
             var ok = row.postcardStatus !== 'Failed';
             check.className = 'check ' + (ok ? 'done' : 'fail');
             check.textContent = ok ? '✓' : '!';
-            var copy = truncatePostcardCopy(row.copy || '', 200);
+            var copy = truncatePostcardCopy(row.copy || '', 400);
             copyEl.textContent = copy || '(No copy)';
             copyEl.classList.remove('hidden');
             var lab = modalStatusLabel(row);

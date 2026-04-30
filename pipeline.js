@@ -5,6 +5,8 @@ const {
   recipientFromPermit,
   SENDER_BRAND_FIRST_NAME,
   SENDER_BRAND_LAST_NAME,
+  buildPostcardFrontHtml,
+  buildPostcardBackHtml,
 } = require('./sendPostcard');
 
 function senderFromEnv() {
@@ -20,34 +22,6 @@ function senderFromEnv() {
     postalOrZip: process.env.POSTGRID_FROM_POSTAL_OR_ZIP,
     countryCode: process.env.POSTGRID_FROM_COUNTRY || 'CA',
   };
-}
-
-function escapeHtml(s) {
-  return String(s)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
-
-function copyToFrontHtml(copy) {
-  const safe = escapeHtml(copy);
-  const body = safe
-    .split(/\n{2,}/)
-    .map((chunk) => chunk.trim())
-    .filter(Boolean)
-    .map(
-      (chunk) =>
-        `<p style="margin:0 0 12px 0;font-size:14px;line-height:1.45;">${chunk.replace(/\n/g, '<br/>')}</p>`,
-    )
-    .join('');
-  return `<!DOCTYPE html><html><body style="margin:0;padding:24px;font-family:Georgia,serif;color:#222;background:#fff;">${body}</body></html>`;
-}
-
-function defaultBackHtml() {
-  return `<!DOCTYPE html><html><body style="margin:0;padding:24px;font-family:Arial,sans-serif;">
-  <p style="font-size:12px;color:#555;">AI Brain Coach — Calgary-area contractor outreach.</p>
-</body></html>`;
 }
 
 const MAX_PIPELINE_PERMITS = 50;
@@ -68,7 +42,6 @@ async function runPipeline(opts) {
     permits = await fetchPermits({ limit, daysBack: days });
   }
   const from = senderFromEnv();
-  const backHTML = defaultBackHtml();
   const size = process.env.POSTGRID_POSTCARD_SIZE || '6x4';
   const mailingClass = process.env.POSTGRID_MAILING_CLASS || 'standard_class';
 
@@ -121,16 +94,17 @@ async function runPipeline(opts) {
       continue;
     }
 
-    const frontHTML = copyToFrontHtml(copy);
+    const frontHTML = buildPostcardFrontHtml(permit);
+    const backHTML = buildPostcardBackHtml(permit, copy);
     const payload = {
       to: mailTo,
-      ...(from ? { from } : {}),
       frontHTML,
       backHTML,
       size,
       mailingClass,
       description: `Permit ${permitnum || 'unknown'}`,
     };
+    if (from) payload.from = from;
 
     try {
       await sendPostcard(payload);

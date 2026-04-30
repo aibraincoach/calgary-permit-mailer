@@ -62,11 +62,11 @@ Rules for the postcard text itself:
 - Optionally weave in the neighbourhood name in a casual way if it is non-empty (e.g. "in Brentwood?"). If neighbourhood is empty, skip location names entirely.
 - One short line that naturally mentions AI Brain Coach as a Calgary-area resource for contractors (plain words, no jargon).
 - End with this exact sentence as its own closing line: Call AI Brain Coach for a free consultation.
-- At most 4 sentences total (including the greeting and the closing line).
-- Under 200 characters total, including spaces and punctuation. Plain text only — no markdown, no bullets, no labels like "Line 1:".
+- At most 6 sentences total (including the greeting and the closing line).
+- Under 400 characters total, including spaces and punctuation. Plain text only — no markdown, no bullets, no labels like "Line 1:".
 
 Good tone example (length and vibe only; do not copy verbatim):
-"Hi Porch Lamp Fine Homes, working on a new build in Brentwood? AI Brain Coach helps contractors across Calgary. Call AI Brain Coach for a free consultation."
+"Hi Porch Lamp Fine Homes, working on a new build in Brentwood? AI Brain Coach helps contractors across Calgary with practical support. We'd love to hear what you need. Call AI Brain Coach for a free consultation."
 
 Bad (never do this): mentioning permit numbers, dollar figures, full street addresses, or "we know about your project."`;
 
@@ -82,7 +82,7 @@ Bad (never do this): mentioning permit numbers, dollar figures, full street addr
         },
         { role: 'user', content: userContent },
       ],
-      max_tokens: 180,
+      max_tokens: 320,
       temperature: 0.65,
     });
 
