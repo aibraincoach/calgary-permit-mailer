@@ -926,6 +926,7 @@
           modalPreviewGallery.classList.remove('hidden');
           modalPreviewGallery.onclick = function () {
             try {
+              localStorage.setItem('postcardPreviewMeta', JSON.stringify(previewMeta));
               sessionStorage.setItem('postcardPreviewMeta', JSON.stringify(previewMeta));
             } catch (e) {}
             var q = encodeURIComponent(previewIds.join(','));
