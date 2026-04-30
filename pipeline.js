@@ -3,6 +3,7 @@ const { generateCopy } = require('./generateCopy');
 const { lookupCalgaryPostalCode } = require('./geocodePostal');
 const {
   sendPostcard,
+  fetchPostcardPdf,
   recipientFromPermit,
   extractPostgridPostcardMeta,
   SENDER_BRAND_FIRST_NAME,
@@ -134,7 +135,8 @@ async function runPipeline(opts) {
 
     try {
       const postgridRes = await sendPostcard(payload);
-      const { pdfUrl, orderId } = extractPostgridPostcardMeta(postgridRes);
+      const { orderId } = extractPostgridPostcardMeta(postgridRes);
+      const pdfUrl = await fetchPostcardPdf(orderId);
       console.log('[pipeline] pdfUrl extracted:', pdfUrl);
       console.log('[pipeline] orderId extracted:', orderId);
 
