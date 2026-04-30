@@ -816,6 +816,7 @@
               extras.classList.add('hidden');
               var pdfUrlVal = row.pdfUrl;
               var orderIdVal = row.orderId || row.postgridOrderId;
+              /* PDF button: show whenever pdfUrl exists (do not gate on postcardStatus). */
               if (pdfUrlVal) {
                 extras.classList.remove('hidden');
                 var pdfBtn = document.createElement('button');
@@ -895,6 +896,8 @@
 
         for (var j = 0; j < data.length; j++) {
           var row = data[j];
+          console.log('[frontend] row received:', row);
+          console.log('[frontend] pdfUrl:', row.pdfUrl);
           if (row.permitnum) statusByPermit[String(row.permitnum)] = row.postcardStatus || '';
           var el = modalList.children[j];
           if (el) await applyResultRow(el, row, 55 * j);

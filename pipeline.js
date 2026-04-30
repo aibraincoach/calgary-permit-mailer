@@ -135,12 +135,8 @@ async function runPipeline(opts) {
     try {
       const postgridRes = await sendPostcard(payload);
       const { pdfUrl, orderId } = extractPostgridPostcardMeta(postgridRes);
-      console.log(
-        '[pipeline] PostGrid extracted pdfUrl:',
-        pdfUrl || '(none)',
-        'orderId:',
-        orderId || '(none)',
-      );
+      console.log('[pipeline] pdfUrl extracted:', pdfUrl);
+      console.log('[pipeline] orderId extracted:', orderId);
 
       const row = {
         permitnum,
@@ -152,6 +148,7 @@ async function runPipeline(opts) {
       };
       if (pdfUrl) row.pdfUrl = pdfUrl;
       if (orderId) row.orderId = orderId;
+      console.log('[pipeline] full row being returned:', JSON.stringify(row));
       rows.push(row);
     } catch {
       rows.push({
