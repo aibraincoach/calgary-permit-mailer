@@ -146,7 +146,7 @@
             <input type="checkbox" id="send" />
             <span class="copy">
               <strong>Send live postcards</strong>
-              <span>Recipients use each permit's contractor name and site address (Calgary + T2P 0A1 when postal is unknown). Leave off to generate copy only.</span>
+              <span>Live send uses only the address fields on each permit (no placeholders). Permits with no address are skipped. Leave off to generate copy only.</span>
             </span>
           </label>
 
@@ -240,7 +240,7 @@
       }
 
       function truncatePostcardCopy(s, maxLen) {
-        var max = maxLen == null ? 300 : maxLen;
+        var max = maxLen == null ? 200 : maxLen;
         var str = String(s);
         if (str.length <= max) return str;
         var budget = max - 3;
@@ -807,7 +807,7 @@
             var ok = row.postcardStatus !== 'Failed';
             check.className = 'check ' + (ok ? 'done' : 'fail');
             check.textContent = ok ? '✓' : '!';
-            var copy = truncatePostcardCopy(row.copy || '', 300);
+            var copy = truncatePostcardCopy(row.copy || '', 200);
             copyEl.textContent = copy || '(No copy)';
             copyEl.classList.remove('hidden');
             var lab = modalStatusLabel(row);

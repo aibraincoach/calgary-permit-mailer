@@ -76,6 +76,21 @@ async function runPipeline(opts) {
     const address = permit.address || permit.originaladdress || '';
     const workclassgroup = permit.workclassgroup || '';
 
+    const mailTo = send ? recipientFromPermit(permit) : null;
+
+    if (send && !mailTo) {
+      console.error('Skipped — no address', permitnum || '(unknown permit)');
+      rows.push({
+        permitnum,
+        contractorname,
+        address,
+        copy: '',
+        workclassgroup,
+        postcardStatus: 'Failed',
+      });
+      continue;
+    }
+
     const copy = await generateCopy(permit);
     if (!copy) {
       rows.push({
@@ -103,7 +118,7 @@ async function runPipeline(opts) {
 
     const frontHTML = copyToFrontHtml(copy);
     const payload = {
-      to: recipientFromPermit(permit),
+      to: mailTo,
       ...(from ? { from } : {}),
       frontHTML,
       backHTML,
