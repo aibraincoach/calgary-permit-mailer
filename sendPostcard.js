@@ -470,22 +470,16 @@ function sleep(ms) {
 }
 
 /**
- * Fetch PDF preview URL after postcard creation (POST often omits `url` until rendered).
- * @param {string} postcardId PostGrid postcard id from create response (e.g. postcard_…)
- * @returns {Promise<string|null>} `url` from GET /postcards/{id}, or null on any failure
+ * GET /postcards/{id} and return PDF `url` when ready (no delay).
+ * @param {string} postcardId
+ * @returns {Promise<string|null>}
  */
-async function fetchPostcardPdf(postcardId) {
+async function getPostcardPdfUrl(postcardId) {
   const id = typeof postcardId === 'string' ? postcardId.trim() : '';
   if (!id) return null;
 
   const key = process.env.POSTGRID_API_KEY;
   if (!key || key === 'your_test_key_here') return null;
-
-  try {
-    await sleep(1500);
-  } catch {
-    return null;
-  }
 
   const getUrl = `${DEFAULT_BASE.replace(/\/$/, '')}/postcards/${encodeURIComponent(id)}`;
   try {
@@ -507,9 +501,31 @@ async function fetchPostcardPdf(postcardId) {
   }
 }
 
+/**
+ * Fetch PDF preview URL after postcard creation (POST often omits `url` until rendered).
+ * @param {string} postcardId PostGrid postcard id from create response (e.g. postcard_…)
+ * @returns {Promise<string|null>} `url` from GET /postcards/{id}, or null on any failure
+ */
+async function fetchPostcardPdf(postcardId) {
+  const id = typeof postcardId === 'string' ? postcardId.trim() : '';
+  if (!id) return null;
+
+  const key = process.env.POSTGRID_API_KEY;
+  if (!key || key === 'your_test_key_here') return null;
+
+  try {
+    await sleep(1500);
+  } catch {
+    return null;
+  }
+
+  return getPostcardPdfUrl(id);
+}
+
 module.exports = {
   sendPostcard,
   fetchPostcardPdf,
+  getPostcardPdfUrl,
   extractPostgridPostcardMeta,
   DEFAULT_BASE,
   recipientFromPermit,

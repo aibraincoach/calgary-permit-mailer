@@ -174,7 +174,12 @@
       <div class="modal-list" id="modal-list"></div>
       <div class="modal-foot">
         <p class="summary" id="modal-foot-summary"><strong>0</strong> permits</p>
-        <button type="button" class="btn btn-primary" id="modal-done">Done</button>
+        <div class="modal-foot-actions">
+          <button type="button" class="btn btn-ghost hidden" id="modal-preview-gallery" aria-label="Open postcard PDF gallery in a new tab">
+            📋 View all postcards
+          </button>
+          <button type="button" class="btn btn-primary" id="modal-done">Done</button>
+        </div>
       </div>
     </div>
   </div>
@@ -229,6 +234,7 @@
       var modalProgressText = document.getElementById('modal-progress-text');
       var progressFill = document.getElementById('progress-fill');
       var modalFootSummary = document.getElementById('modal-foot-summary');
+      var modalPreviewGallery = document.getElementById('modal-preview-gallery');
       var clockEl = document.getElementById('clock');
 
       function escapeHtml(s) {
@@ -810,31 +816,6 @@
             var copy = truncatePostcardCopy(row.copy || '', 400);
             copyEl.textContent = copy || '(No copy)';
             copyEl.classList.remove('hidden');
-            var extras = rowEl.querySelector('.postgrid-extras');
-            if (extras) {
-              extras.innerHTML = '';
-              extras.classList.add('hidden');
-              var pdfUrlVal = row.pdfUrl;
-              var orderIdVal = row.orderId || row.postgridOrderId;
-              /* PDF button: show whenever pdfUrl exists (do not gate on postcardStatus). */
-              if (pdfUrlVal) {
-                extras.classList.remove('hidden');
-                var pdfBtn = document.createElement('button');
-                pdfBtn.type = 'button';
-                pdfBtn.className = 'btn btn-primary postgrid-pdf-btn';
-                pdfBtn.textContent = '📄 View Postcard PDF';
-                pdfBtn.addEventListener('click', function () {
-                  window.open(pdfUrlVal, '_blank', 'noopener,noreferrer');
-                });
-                extras.appendChild(pdfBtn);
-                if (orderIdVal) {
-                  var oidEl = document.createElement('div');
-                  oidEl.className = 'postgrid-order';
-                  oidEl.textContent = 'PostGrid order ID: ' + orderIdVal;
-                  extras.appendChild(oidEl);
-                }
-              }
-            }
             var lab = modalStatusLabel(row);
             statusEl.className = 'status ' + lab.cls;
             statusEl.textContent = lab.text;
@@ -846,6 +827,8 @@
       async function runPipelineUi(permitsPayload) {
         var sendOn = sendInput.checked;
         modalList.innerHTML = '';
+        modalPreviewGallery.classList.add('hidden');
+        modalPreviewGallery.onclick = null;
         var total = permitsPayload.length;
         modalFootSummary.innerHTML =
           '<strong>0</strong> of <strong>' + total + '</strong> complete · ~$0.00 est. cost';
@@ -862,7 +845,6 @@
             escapeHtml((p.contractorname || '').trim() || 'Unknown contractor') +
             '</div>' +
             '<div class="copy-text hidden"></div>' +
-            '<div class="postgrid-extras hidden" aria-live="polite"></div>' +
             '<div class="meta">' +
             escapeHtml(p.permitnum || '') +
             '</div></div>' +
@@ -923,6 +905,33 @@
           finalEst.toFixed(2) +
           ' est. cost';
         modalProgressText.textContent = 'Complete';
+
+        var previewIds = [];
+        var previewMeta = {};
+        if (sendOn) {
+          for (var pi = 0; pi < data.length; pi++) {
+            var rw = data[pi];
+            var oid = rw.orderId || rw.postgridOrderId;
+            if (oid && rw.postcardStatus === 'Postcard Sent') {
+              previewIds.push(String(oid).trim());
+              previewMeta[String(oid).trim()] = {
+                permitnum: rw.permitnum || '',
+                contractorname: rw.contractorname || '',
+              };
+            }
+          }
+        }
+        if (previewIds.length) {
+          modalPreviewGallery.textContent = '📋 View all postcards (' + previewIds.length + ')';
+          modalPreviewGallery.classList.remove('hidden');
+          modalPreviewGallery.onclick = function () {
+            try {
+              sessionStorage.setItem('postcardPreviewMeta', JSON.stringify(previewMeta));
+            } catch (e) {}
+            var q = encodeURIComponent(previewIds.join(','));
+            window.open('/previews?ids=' + q, '_blank', 'noopener,noreferrer');
+          };
+        }
       }
 
       function closeModal() {

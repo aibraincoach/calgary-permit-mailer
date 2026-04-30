@@ -407,20 +407,6 @@
   line-height: 1.45;
   margin-top: 6px;
 }
-.modal-row .postgrid-extras {
-  margin-top: 8px;
-}
-.modal-row .postgrid-extras .btn.postgrid-pdf-btn {
-  font-size: 13px;
-  padding: 8px 14px;
-  font-weight: 600;
-}
-.modal-row .postgrid-order {
-  font-size: 11px;
-  font-family: ui-monospace, var(--font-mono), monospace;
-  color: var(--muted-2);
-  margin-top: 6px;
-}
 .modal-row .meta {
   font-size: 11.5px; color: var(--muted);
 }
@@ -435,10 +421,12 @@
 .modal-row .status.error { background: var(--danger-soft); color: var(--danger); }
 
 .modal-foot {
-  display: flex; align-items: center; gap: 10px;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  flex-wrap: wrap;
   padding: 14px 22px;
   border-top: 1px solid var(--line);
   background: var(--surface-2);
 }
-.modal-foot .summary { flex: 1; font-size: 12.5px; color: var(--muted); }
+.modal-foot .summary { flex: 1; min-width: 140px; font-size: 12.5px; color: var(--muted); }
 .modal-foot .summary strong { color: var(--ink); font-weight: 600; }
+.modal-foot-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
