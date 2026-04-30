@@ -4,245 +4,983 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Calgary Permit Mailer</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            surface: { DEFAULT: '#0f1419', card: '#161d27', border: '#243044' },
-            accent: { DEFAULT: '#38bdf8', muted: '#64748b' },
-          },
-        },
-      },
-    };
-  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;600&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
   <style>
+    :root {
+      --bg: #080808;
+      --surface: #111111;
+      --border: #222222;
+      --text: #f0f0f0;
+      --muted: #666666;
+      --accent: #ff2d2d;
+      --accent-soft: #ff6b6b;
+      --cyan: #00d4ff;
+      --success: #00ff88;
+      --card-shadow: 0 0 0 1px #222222, 0 4px 24px rgba(0, 0, 0, 0.4);
+      --radius: 12px;
+      --font-sans: "Inter", system-ui, sans-serif;
+      --font-mono: "JetBrains Mono", ui-monospace, monospace;
+      --font-hand: "Caveat", cursive;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+      background-size: 56px 56px;
+      mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 20%, transparent 75%);
+    }
+
+    .app { position: relative; z-index: 1; }
+
+    .hidden { display: none !important; }
+
+    /* Header */
+    .top-header {
+      width: 100%;
+      background: linear-gradient(180deg, #0c0c0c 0%, #080808 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 0.75rem 1.25rem;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 1rem;
+    }
+    @media (max-width: 1100px) {
+      .top-header { grid-template-columns: 1fr; text-align: center; }
+      .pipeline-visual { order: 3; justify-content: center; flex-wrap: wrap; }
+      .header-clock { justify-self: center !important; }
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .logo-mark {
+      width: 14px;
+      height: 14px;
+      background: var(--accent);
+      border-radius: 3px;
+      box-shadow: 0 0 16px rgba(255, 45, 45, 0.65);
+      flex-shrink: 0;
+    }
+    .brand-title {
+      font-weight: 800;
+      font-size: 1.05rem;
+      letter-spacing: -0.02em;
+      color: #fff;
+    }
+
+    .pipeline-visual {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.35rem;
+      font-size: 0.68rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .p-step {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.35rem 0.5rem;
+      border-radius: 8px;
+      transition: color 0.3s, text-shadow 0.3s, background 0.3s;
+      white-space: nowrap;
+    }
+    .p-step.active {
+      color: var(--cyan);
+      text-shadow: 0 0 12px rgba(0, 212, 255, 0.45);
+      background: rgba(0, 212, 255, 0.06);
+    }
+    .p-step.done {
+      color: var(--success);
+      text-shadow: 0 0 10px rgba(0, 255, 136, 0.35);
+    }
+    .p-conn {
+      display: flex;
+      align-items: center;
+      color: var(--muted);
+      opacity: 0.5;
+    }
+    .p-conn .dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--muted);
+      box-shadow: 0 0 0 1px var(--border);
+    }
+    .p-conn .line {
+      width: 18px;
+      height: 1px;
+      background: linear-gradient(90deg, var(--muted), var(--cyan));
+      margin-left: 2px;
+    }
+    .p-conn.pulse .dot {
+      background: var(--cyan);
+      box-shadow: 0 0 10px var(--cyan);
+      animation: connPulse 1.2s ease-in-out infinite;
+    }
+    .p-conn.pulse .line {
+      opacity: 1;
+      background: linear-gradient(90deg, var(--cyan), var(--accent));
+    }
+    @keyframes connPulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.3); opacity: 0.85; }
+    }
+
+    .header-clock {
+      justify-self: end;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+    .clock-time {
+      font-family: var(--font-mono);
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .clock-tz {
+      font-size: 0.7rem;
+      color: var(--muted);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .header-glow-line {
+      height: 1px;
+      width: 100%;
+      background: linear-gradient(90deg, transparent, var(--accent), var(--accent-soft), transparent);
+      box-shadow: 0 0 12px rgba(255, 45, 45, 0.8), 0 0 28px rgba(255, 45, 45, 0.35);
+    }
+
+    /* Marquee */
+    .marquee-wrap {
+      overflow: hidden;
+      border-bottom: 1px solid var(--border);
+      background: #0a0a0a;
+      padding: 0.45rem 0;
+    }
+    .marquee {
+      display: flex;
+      width: max-content;
+      animation: marquee 48s linear infinite;
+    }
+    .marquee span {
+      padding: 0 2rem;
+      font-size: 0.72rem;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    @keyframes marquee {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+
+    /* Main grid */
+    .main-grid {
+      display: grid;
+      grid-template-columns: minmax(280px, 1fr) minmax(300px, 1.1fr) minmax(280px, 1fr);
+      gap: 1rem;
+      padding: 1rem 1.25rem 2rem;
+      max-width: 1680px;
+      margin: 0 auto;
+    }
+    @media (max-width: 1200px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--card-shadow);
+      display: flex;
+      flex-direction: column;
+      min-height: 420px;
+      max-height: min(78vh, 820px);
+      overflow: hidden;
+    }
+    .panel-head {
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .panel-kicker {
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      color: var(--muted);
+      margin: 0 0 0.35rem;
+    }
+    .panel-sub {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin: 0;
+    }
+    .panel-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0.75rem;
+      min-height: 0;
+    }
+
+    .live-dot {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      margin-right: 6px;
+      vertical-align: middle;
+      box-shadow: 0 0 10px var(--accent);
+      animation: liveDot 1.5s ease-in-out infinite;
+    }
+    @keyframes liveDot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.55; transform: scale(0.85); }
+    }
+
+    /* Skeleton */
+    .skeleton-stack { display: flex; flex-direction: column; gap: 0.65rem; }
+    .sk-card {
+      height: 88px;
+      border-radius: var(--radius);
+      background: linear-gradient(90deg, #151515 0%, #1c1c1c 40%, #151515 80%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s ease-in-out infinite;
+      border: 1px solid var(--border);
+    }
+    @keyframes shimmer {
+      0% { background-position: 100% 0; }
+      100% { background-position: -100% 0; }
+    }
+
+    /* Feed cards */
+    .feed-card {
+      position: relative;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.85rem 0.85rem 0.85rem 2.5rem;
+      margin-bottom: 0.65rem;
+      cursor: pointer;
+      transition: border-color 0.25s, box-shadow 0.25s, transform 0.2s;
+      animation: cardIn 0.45s ease backwards;
+    }
+    .feed-card:hover {
+      border-color: rgba(0, 212, 255, 0.45);
+      box-shadow: 0 0 0 1px rgba(0, 212, 255, 0.15), 0 4px 20px rgba(0, 212, 255, 0.08);
+    }
+    .feed-card.selected {
+      border-color: rgba(255, 45, 45, 0.65);
+      box-shadow: 0 0 0 1px rgba(255, 45, 45, 0.25), 0 0 28px rgba(255, 45, 45, 0.12);
+    }
+    .feed-card.detail-row {
+      border-left: 3px solid var(--accent);
+      padding-left: calc(2.5rem - 2px);
+    }
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .feed-card .cb-wrap {
+      position: absolute;
+      left: 0.65rem;
+      top: 50%;
+      transform: translateY(-50%);
+      cursor: default;
+    }
+    .feed-card input[type="checkbox"] {
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: #0a0a0a;
+      cursor: pointer;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .feed-card input[type="checkbox"]:checked {
+      background: linear-gradient(135deg, var(--accent), #cc0000);
+      border-color: var(--accent);
+      box-shadow: 0 0 12px rgba(255, 45, 45, 0.5);
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 10'%3E%3Cpath fill='none' stroke='white' stroke-width='2' d='M1 5l3.5 3.5L11 1'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: center;
+      background-size: 11px auto;
+    }
+
+    .badge-wt {
+      display: inline-block;
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 0.2rem 0.45rem;
+      border-radius: 6px;
+      margin-bottom: 0.35rem;
+    }
+    .badge-wt.new {
+      color: var(--success);
+      border: 1px solid rgba(0, 255, 136, 0.35);
+      box-shadow: 0 0 12px rgba(0, 255, 136, 0.15);
+    }
+    .badge-wt.improvement {
+      color: var(--cyan);
+      border: 1px solid rgba(0, 212, 255, 0.35);
+      box-shadow: 0 0 12px rgba(0, 212, 255, 0.12);
+    }
+    .badge-wt.demolition {
+      color: var(--accent);
+      border: 1px solid rgba(255, 45, 45, 0.4);
+      box-shadow: 0 0 12px rgba(255, 45, 45, 0.12);
+    }
+    .badge-wt.other {
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+
+    .mono-cyan {
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--cyan);
+      text-shadow: 0 0 14px rgba(0, 212, 255, 0.25);
+    }
+    .mono-id {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--muted);
+    }
+    .feed-title {
+      font-weight: 600;
+      font-size: 0.9rem;
+      margin: 0 0 0.2rem;
+      color: var(--text);
+    }
+    .feed-meta {
+      font-size: 0.75rem;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    .feed-footer {
+      padding: 0.75rem 1rem;
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .sel-line {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin: 0 0 0.65rem;
+    }
+    .sel-line strong { color: var(--cyan); }
+
+    .opt-send {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-bottom: 0.75rem;
+      cursor: pointer;
+    }
+    .opt-send input { accent-color: var(--accent); }
+
+    .btn-launch {
+      width: 100%;
+      border: none;
+      border-radius: var(--radius);
+      padding: 0.95rem 1rem;
+      font-family: var(--font-sans);
+      font-weight: 800;
+      font-size: 0.85rem;
+      letter-spacing: 0.06em;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      color: #fff;
+      background: linear-gradient(135deg, #ff2d2d, #ff6b6b);
+      box-shadow: 0 4px 24px rgba(255, 45, 45, 0.35);
+      transition: transform 0.15s, box-shadow 0.25s;
+    }
+    .btn-launch:hover:not(:disabled) {
+      box-shadow: 0 0 32px rgba(255, 45, 45, 0.55), 0 6px 28px rgba(0, 0, 0, 0.45);
+      transform: translateY(-1px);
+    }
+    .btn-launch:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+    .btn-launch.has-selection:not(:disabled) {
+      animation: btnPulse 2s ease-in-out infinite;
+    }
+    @keyframes btnPulse {
+      0%, 100% { box-shadow: 0 4px 24px rgba(255, 45, 45, 0.35); }
+      50% { box-shadow: 0 0 36px rgba(255, 45, 45, 0.65), 0 4px 24px rgba(255, 45, 45, 0.4); }
+    }
+    .btn-launch .btn-label { position: relative; z-index: 2; }
+    .btn-launch .btn-progress {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      background: rgba(0, 0, 0, 0.35);
+      transform: translateX(-100%);
+      transition: transform 0.05s linear;
+    }
+    .btn-launch.is-running .btn-progress {
+      animation: progSweep 2.2s ease-in-out infinite;
+    }
+    .btn-launch.is-running .btn-label { opacity: 0.92; }
+    @keyframes progSweep {
+      0% { transform: translateX(-100%); }
+      50% { transform: translateX(-15%); }
+      100% { transform: translateX(0%); }
+    }
+
+    .err-txt {
+      margin: 0.5rem 0 0;
+      font-size: 0.75rem;
+      color: var(--accent);
+      display: none;
+    }
+    .err-txt.visible { display: block; }
+
+    /* AI panel */
+    .model-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      padding: 0.25rem 0.55rem;
+      border-radius: 999px;
+      border: 1px solid rgba(0, 212, 255, 0.35);
+      color: var(--cyan);
+      box-shadow: 0 0 14px rgba(0, 212, 255, 0.12);
+      margin-top: 0.35rem;
+    }
+    .ai-idle {
+      min-height: 200px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      font-size: 0.75rem;
+    }
+    .wave {
+      display: flex;
+      align-items: flex-end;
+      gap: 4px;
+      height: 48px;
+      margin-bottom: 1rem;
+    }
+    .wave span {
+      width: 4px;
+      background: linear-gradient(180deg, var(--cyan), transparent);
+      border-radius: 2px;
+      animation: wave 1.1s ease-in-out infinite;
+    }
+    .wave span:nth-child(1) { height: 18%; animation-delay: 0s; }
+    .wave span:nth-child(2) { height: 42%; animation-delay: 0.08s; }
+    .wave span:nth-child(3) { height: 72%; animation-delay: 0.16s; }
+    .wave span:nth-child(4) { height: 100%; animation-delay: 0.24s; }
+    .wave span:nth-child(5) { height: 68%; animation-delay: 0.32s; }
+    .wave span:nth-child(6) { height: 38%; animation-delay: 0.4s; }
+    .wave span:nth-child(7) { height: 16%; animation-delay: 0.48s; }
+    @keyframes wave {
+      0%, 100% { transform: scaleY(0.35); opacity: 0.4; }
+      50% { transform: scaleY(1); opacity: 1; }
+    }
+
+    .ai-stats {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-top: 0.75rem;
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: var(--muted);
+    }
+    .ai-stats span strong {
+      color: var(--cyan);
+      font-weight: 600;
+    }
+
+    .ai-log {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .ai-block {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.85rem;
+      background: #0c0c0c;
+      animation: blockIn 0.4s ease;
+    }
+    @keyframes blockIn {
+      from { opacity: 0; transform: translateX(-16px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    .ai-block.contractor-in {
+      animation: slideName 0.45s ease;
+    }
+    @keyframes slideName {
+      from { opacity: 0; transform: translateX(-28px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    .ai-block-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .ai-name {
+      font-weight: 700;
+      font-size: 0.85rem;
+      color: #fff;
+    }
+    .ai-cursor {
+      display: inline-block;
+      width: 2px;
+      height: 1em;
+      background: var(--cyan);
+      margin-left: 2px;
+      vertical-align: -2px;
+      animation: blink 0.8s step-end infinite;
+    }
+    @keyframes blink { 50% { opacity: 0; } }
+    .ai-copy {
+      font-size: 0.78rem;
+      line-height: 1.55;
+      color: #d8d8d8;
+      white-space: pre-wrap;
+    }
+    .ai-check {
+      color: var(--success);
+      font-size: 1.1rem;
+      filter: drop-shadow(0 0 6px rgba(0, 255, 136, 0.5));
+    }
+
+    /* Mail queue */
+    .cp-dot {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #c8102e;
+      margin-right: 6px;
+      vertical-align: middle;
+      box-shadow: 0 0 8px rgba(200, 16, 46, 0.6);
+    }
+
+    .ghost-postcard {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 2.5rem 1rem;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.78rem;
+      background: repeating-linear-gradient(
+        -12deg,
+        transparent,
+        transparent 10px,
+        rgba(255, 255, 255, 0.02) 10px,
+        rgba(255, 255, 255, 0.02) 11px
+      );
+    }
+
+    .postcard-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+      perspective: 800px;
+    }
+    .postcard-wrap {
+      position: relative;
+      transform: rotate(-1deg);
+      transition: transform 0.25s;
+    }
+    .postcard-wrap:nth-child(even) { transform: rotate(0.6deg); }
+    .postcard-wrap:hover { transform: rotate(0deg) translateY(-2px); }
+
+    .postcard {
+      position: relative;
+      background: #f7f7f5;
+      color: #1a1a1a;
+      border-radius: 6px;
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45), 0 2px 0 rgba(255, 255, 255, 0.4) inset;
+      padding: 1rem 1rem 1.1rem;
+      min-height: 168px;
+      overflow: hidden;
+    }
+    .postcard .stamp {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 38px;
+      height: 48px;
+      border: 2px dashed #bbb;
+      border-radius: 3px;
+      background: linear-gradient(135deg, #e8e8e8, #f5f5f5);
+      box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.06);
+    }
+    .postcard .stamp::after {
+      content: "P";
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-mono);
+      font-weight: 800;
+      font-size: 0.85rem;
+      color: #c8102e;
+      opacity: 0.35;
+    }
+    .ribbon {
+      position: absolute;
+      top: 14px;
+      left: -32px;
+      transform: rotate(-42deg);
+      width: 120px;
+      text-align: center;
+      font-size: 0.55rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      padding: 4px 0;
+      color: #fff;
+      text-transform: uppercase;
+    }
+    .ribbon.queued { background: linear-gradient(90deg, #0066cc, var(--cyan)); }
+    .ribbon.sent { background: linear-gradient(90deg, #008844, var(--success)); }
+    .ribbon.failed { background: linear-gradient(90deg, #881100, var(--accent)); }
+
+    .pc-front {
+      font-size: 0.68rem;
+      line-height: 1.45;
+      color: #333;
+      padding-right: 44px;
+      max-height: 4.2em;
+      overflow: hidden;
+    }
+    .pc-divider {
+      border-top: 2px dotted #bbb;
+      margin: 0.55rem 0;
+    }
+    .pc-addr {
+      font-family: var(--font-hand);
+      font-size: 1.15rem;
+      line-height: 1.25;
+      color: #222;
+    }
+    .cost-footer {
+      margin-top: auto;
+      padding-top: 0.75rem;
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+    }
+    .cost-footer strong { color: var(--cyan); }
+
+    /* Detail modal */
     #detail-backdrop {
       opacity: 0;
       pointer-events: none;
-      transition: opacity 0.2s ease;
+      transition: opacity 0.25s ease;
     }
     #detail-backdrop.is-open {
       opacity: 1;
       pointer-events: auto;
     }
     #detail-panel {
-      transition: transform 0.28s ease;
+      transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
       pointer-events: none;
     }
     @media (max-width: 1023px) {
-      #detail-panel {
-        transform: translateY(100%);
-      }
-      #detail-panel.is-open {
-        transform: translateY(0);
-        pointer-events: auto;
-      }
+      #detail-panel { transform: translateY(110%); }
+      #detail-panel.is-open { transform: translateY(0); pointer-events: auto; }
     }
     @media (min-width: 1024px) {
-      #detail-panel {
-        transform: translateX(100%);
-      }
-      #detail-panel.is-open {
-        transform: translateX(0);
-        pointer-events: auto;
-      }
+      #detail-panel { transform: translateX(105%); }
+      #detail-panel.is-open { transform: translateX(0); pointer-events: auto; }
+    }
+
+    .detail-dl-row {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: 0.5rem 1rem;
+      padding: 0.55rem 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.78rem;
+    }
+    .detail-dl-row dt {
+      color: var(--muted);
+      text-transform: uppercase;
+      font-size: 0.62rem;
+      letter-spacing: 0.06em;
+    }
+    .detail-dl-row dd { margin: 0; color: var(--text); word-break: break-word; }
+
+    .success-flash {
+      animation: successFlash 0.65s ease;
+    }
+    @keyframes successFlash {
+      0% { box-shadow: inset 0 0 0 0 rgba(0, 255, 136, 0); }
+      40% { box-shadow: inset 0 0 80px 0 rgba(0, 255, 136, 0.12); }
+      100% { box-shadow: inset 0 0 0 0 rgba(0, 255, 136, 0); }
     }
   </style>
 </head>
-<body class="min-h-screen bg-surface text-slate-200 antialiased">
-  <div class="mx-auto max-w-[1400px] px-4 py-6 sm:px-6 lg:px-8">
-    <header class="mb-6 border-b border-surface-border pb-6">
-      <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 class="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
-            Calgary Permit Mailer
-          </h1>
-          <p class="mt-1 text-sm text-slate-400 sm:text-base">
-            Automated direct mail for Calgary contractors
-          </p>
-          <p class="mt-2 text-xs text-slate-500">
-            Showing last 14 days (up to 25 permits) from Calgary Open Data — select rows, then run the pipeline.
-          </p>
-        </div>
-        <div
-          id="pipeline-indicator"
-          class="flex items-center gap-2 rounded-full border border-surface-border bg-surface-card px-4 py-2 text-sm"
-        >
-          <span
-            id="indicator-dot"
-            class="h-2 w-2 rounded-full bg-slate-500"
-            aria-hidden="true"
-          ></span>
-          <span id="indicator-label" class="text-slate-400">Idle</span>
-        </div>
+<body>
+  <div class="app" id="app-root">
+    <header class="top-header">
+      <div class="brand">
+        <span class="logo-mark" aria-hidden="true"></span>
+        <span class="brand-title">Calgary Permit Mailer</span>
+      </div>
+      <div class="pipeline-visual" id="pipeline-visual" aria-hidden="true">
+        <span class="p-step" data-step="0"><span>📡</span> Open Data</span>
+        <span class="p-conn" data-conn="0"><span class="dot"></span><span class="line"></span></span>
+        <span class="p-step" data-step="1"><span>🤖</span> GPT-4o</span>
+        <span class="p-conn" data-conn="1"><span class="dot"></span><span class="line"></span></span>
+        <span class="p-step" data-step="2"><span>✉️</span> PostGrid</span>
+        <span class="p-conn" data-conn="2"><span class="dot"></span><span class="line"></span></span>
+        <span class="p-step" data-step="3"><span>📬</span> Mailbox</span>
+      </div>
+      <div class="header-clock">
+        <div class="clock-time" id="header-clock">—:—:—</div>
+        <div class="clock-tz">YYC</div>
       </div>
     </header>
+    <div class="header-glow-line" aria-hidden="true"></div>
 
-    <div class="grid gap-6 lg:grid-cols-2 lg:items-start">
-      <!-- Left: permits -->
-      <section class="flex min-h-0 flex-col rounded-xl border border-surface-border bg-surface-card shadow-xl">
-        <div class="border-b border-surface-border px-4 py-3">
-          <h2 class="text-lg font-medium text-white">Permits</h2>
-          <p id="permits-load-msg" class="mt-1 text-sm text-slate-500">Loading…</p>
-        </div>
-        <div class="min-h-[280px] max-h-[min(60vh,560px)] overflow-auto">
-          <table class="w-full min-w-[640px] border-collapse text-left text-sm">
-            <thead class="sticky top-0 z-10 bg-[#1a2332] shadow-sm">
-              <tr class="text-xs uppercase tracking-wide text-slate-400">
-                <th class="w-10 px-3 py-3"></th>
-                <th class="px-3 py-3">Permit #</th>
-                <th class="px-3 py-3">Contractor</th>
-                <th class="px-3 py-3">Address</th>
-                <th class="px-3 py-3">Work type</th>
-                <th class="px-3 py-3 text-right">Est. cost</th>
-                <th class="px-3 py-3">Applied</th>
-              </tr>
-            </thead>
-            <tbody id="permits-tbody"></tbody>
-          </table>
-        </div>
-        <div class="border-t border-surface-border p-4">
-          <p id="selected-count" class="mb-3 text-sm font-medium text-slate-300">
-            0 permits selected
-          </p>
-          <label class="mb-3 flex cursor-pointer items-center gap-3 text-sm text-slate-300">
-            <input
-              type="checkbox"
-              id="send"
-              class="h-4 w-4 rounded border-surface-border bg-surface text-accent focus:ring-accent"
-            />
-            Send postcards (PostGrid + <code class="text-xs text-slate-500">POSTGRID_TO_*</code> in .env)
-          </label>
-          <button
-            type="button"
-            id="run-btn"
-            class="w-full rounded-lg bg-sky-500 px-6 py-3 text-base font-semibold text-slate-900 shadow-lg transition hover:bg-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2 focus:ring-offset-surface-card disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            Run Pipeline
-          </button>
-          <p id="results-error" class="mt-3 hidden text-sm text-red-400"></p>
-        </div>
-      </section>
-
-      <!-- Right: results + permit detail overlay -->
-      <section
-        id="results-section"
-        class="relative flex min-h-0 flex-col overflow-hidden rounded-xl border border-surface-border bg-surface-card shadow-xl"
-      >
-        <div class="border-b border-surface-border px-4 py-3">
-          <h2 class="text-lg font-medium text-white">Pipeline results</h2>
-          <p class="mt-1 text-sm text-slate-500">Generated copy and mail status for the selected permits.</p>
-        </div>
-        <div
-          id="results-inner"
-          class="relative min-h-[280px] max-h-[min(70vh,640px)] flex-1 overflow-y-auto p-4"
-        >
-          <div
-            id="results-empty"
-            class="rounded-lg border border-dashed border-surface-border bg-surface/40 p-10 text-center text-slate-500"
-          >
-            Select one or more permits and click Run Pipeline to see results here. Click a table row (not the checkbox) to view full permit data.
-          </div>
-          <div id="results-list" class="hidden space-y-4"></div>
-        </div>
-        <!-- Mobile dim behind bottom sheet -->
-        <div
-          id="detail-backdrop"
-          class="fixed inset-0 z-[35] bg-black/55 lg:hidden"
-          aria-hidden="true"
-        ></div>
-        <aside
-          id="detail-panel"
-          class="fixed bottom-0 left-0 right-0 z-40 flex max-h-[88vh] flex-col rounded-t-2xl border border-surface-border border-b-0 bg-[#0d1218] shadow-2xl lg:absolute lg:inset-y-0 lg:left-auto lg:right-0 lg:max-h-none lg:h-full lg:w-full lg:max-w-md lg:rounded-none lg:border-b lg:border-l lg:border-t-0"
-          aria-hidden="true"
-        >
-          <div
-            class="flex shrink-0 items-center justify-between gap-3 border-b border-surface-border px-4 py-3"
-          >
-            <div class="min-w-0">
-              <h3 class="truncate text-base font-semibold text-white">Permit details</h3>
-              <p id="detail-subtitle" class="truncate font-mono text-xs text-slate-500"></p>
-            </div>
-            <button
-              type="button"
-              id="detail-close"
-              class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-surface-border text-slate-400 transition hover:bg-white/5 hover:text-white"
-              aria-label="Close permit details"
-            >
-              <span class="text-xl leading-none" aria-hidden="true">&times;</span>
-            </button>
-          </div>
-          <div id="detail-body" class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4"></div>
-        </aside>
-      </section>
+    <div class="marquee-wrap" aria-hidden="true">
+      <div class="marquee">
+        <span>Calgary publishes 70+ building permits daily</span>
+        <span>·</span>
+        <span>Every permit is a contractor</span>
+        <span>·</span>
+        <span>Every contractor is a prospect</span>
+        <span>·</span>
+        <span>This tool finds them, writes to them, mails to them</span>
+        <span>·</span>
+        <span>Automatically</span>
+        <span>·</span>
+        <span>Repeat tomorrow</span>
+        <span>·</span>
+        <span>Calgary publishes 70+ building permits daily</span>
+        <span>·</span>
+        <span>Every permit is a contractor</span>
+        <span>·</span>
+        <span>Every contractor is a prospect</span>
+        <span>·</span>
+        <span>This tool finds them, writes to them, mails to them</span>
+        <span>·</span>
+        <span>Automatically</span>
+        <span>·</span>
+        <span>Repeat tomorrow</span>
+        <span>·</span>
+      </div>
     </div>
+
+    <main class="main-grid" id="main-grid">
+      <!-- Left: feed -->
+      <section class="panel" id="feed-panel">
+        <div class="panel-head">
+          <p class="panel-kicker">Live permit feed</p>
+          <p class="panel-sub"><span class="live-dot"></span>Calgary Open Data · <span id="permits-load-msg">Initializing…</span></p>
+        </div>
+        <div class="panel-body" id="permits-feed"></div>
+        <div class="feed-footer">
+          <p class="sel-line" id="selected-count">0 targets selected</p>
+          <label class="opt-send">
+            <input type="checkbox" id="send" />
+            <span>Send live postcards (PostGrid + <code style="font-size:0.65rem">POSTGRID_TO_*</code>)</span>
+          </label>
+          <button type="button" class="btn-launch" id="run-btn" disabled>
+            <span class="btn-progress" aria-hidden="true"></span>
+            <span class="btn-label">⚡ LAUNCH PIPELINE</span>
+          </button>
+          <p class="err-txt" id="results-error"></p>
+        </div>
+      </section>
+
+      <!-- Center: AI -->
+      <section class="panel" id="ai-panel">
+        <div class="panel-head">
+          <p class="panel-kicker">AI copy engine</p>
+          <span class="model-pill">● GPT-4o-mini</span>
+        </div>
+        <div class="panel-body" id="ai-body">
+          <div class="ai-idle" id="ai-idle">
+            <div class="wave" aria-hidden="true">
+              <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+            </div>
+            <span id="ai-idle-msg">Neural queue idle — select permits and launch.</span>
+          </div>
+          <div class="ai-log hidden" id="ai-log"></div>
+          <div class="ai-stats">
+            <span>Tokens <strong id="stat-tokens">0</strong></span>
+            <span>Postcards <strong id="stat-postcards">0</strong></span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right: mail -->
+      <section class="panel" id="mail-panel">
+        <div class="panel-head">
+          <p class="panel-kicker">Postgrid mail queue</p>
+          <p class="panel-sub"><span class="cp-dot"></span>via Canada Post</p>
+        </div>
+        <div class="panel-body">
+          <div id="mail-empty" class="ghost-postcard">
+            No postcards in queue.<br />Launch pipeline to render mailpieces.
+          </div>
+          <div id="mail-stack" class="postcard-stack hidden"></div>
+        </div>
+        <div class="cost-footer">
+          Total pipeline cost (est.): <strong id="pipeline-cost">~$0.00</strong>
+        </div>
+      </section>
+    </main>
+
+    <!-- Detail overlay -->
+    <div
+      id="detail-backdrop"
+      class="fixed inset-0 z-[90] bg-black/70 lg:bg-black/50"
+      aria-hidden="true"
+    ></div>
+    <aside
+      id="detail-panel"
+      class="fixed bottom-0 left-0 right-0 z-[100] flex max-h-[90vh] flex-col rounded-t-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] shadow-2xl lg:bottom-auto lg:left-auto lg:top-0 lg:right-0 lg:max-h-none lg:h-full lg:w-[min(100%,440px)] lg:rounded-none lg:border-l"
+      aria-hidden="true"
+    >
+      <div class="flex items-center justify-between gap-3 border-b border-[var(--border)] px-4 py-3">
+        <div class="min-w-0">
+          <h3 class="truncate text-sm font-bold uppercase tracking-wide text-[var(--text)]">Permit file</h3>
+          <p id="detail-subtitle" class="truncate font-mono text-xs text-[var(--cyan)]"></p>
+        </div>
+        <button
+          type="button"
+          id="detail-close"
+          class="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] border border-[var(--border)] text-[var(--muted)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+          aria-label="Close"
+        >
+          ×
+        </button>
+      </div>
+      <div id="detail-body" class="min-h-0 flex-1 overflow-y-auto px-4 py-3"></div>
+    </aside>
   </div>
 
   <script>
     (function () {
       const sendInput = document.getElementById('send');
       const runBtn = document.getElementById('run-btn');
-      const indicatorDot = document.getElementById('indicator-dot');
-      const indicatorLabel = document.getElementById('indicator-label');
-      const permitsTbody = document.getElementById('permits-tbody');
+      const permitsFeed = document.getElementById('permits-feed');
       const permitsLoadMsg = document.getElementById('permits-load-msg');
       const selectedCountEl = document.getElementById('selected-count');
-      const resultsEmpty = document.getElementById('results-empty');
-      const resultsList = document.getElementById('results-list');
       const resultsError = document.getElementById('results-error');
       const detailPanel = document.getElementById('detail-panel');
       const detailBackdrop = document.getElementById('detail-backdrop');
       const detailBody = document.getElementById('detail-body');
       const detailClose = document.getElementById('detail-close');
       const detailSubtitle = document.getElementById('detail-subtitle');
+      const aiIdle = document.getElementById('ai-idle');
+      const aiLog = document.getElementById('ai-log');
+      const mailEmpty = document.getElementById('mail-empty');
+      const mailStack = document.getElementById('mail-stack');
+      const statTokens = document.getElementById('stat-tokens');
+      const statPostcards = document.getElementById('stat-postcards');
+      const pipelineCostEl = document.getElementById('pipeline-cost');
+      const mainGrid = document.getElementById('main-grid');
+      const steps = document.querySelectorAll('.p-step');
+      const conns = document.querySelectorAll('.p-conn');
+      const aiIdleMsg = document.getElementById('ai-idle-msg');
 
-      /** @type {object[]} */
       let allPermits = [];
-      /** @type {Set<number>} */
       const selected = new Set();
       let detailIdx = null;
+      let tokenCount = 0;
+      let postcardCount = 0;
 
-      function setStatus(state) {
-        indicatorLabel.textContent =
-          state === 'idle' ? 'Idle' : state === 'running' ? 'Running…' : 'Done';
-        indicatorDot.className = 'h-2 w-2 rounded-full ';
-        if (state === 'idle') {
-          indicatorDot.className += 'bg-slate-500';
-        } else if (state === 'running') {
-          indicatorDot.className += 'animate-pulse bg-amber-400';
-        } else {
-          indicatorDot.className += 'bg-emerald-400';
-        }
-      }
-
-      function updateRowClasses() {
-        const n = selected.size;
-        selectedCountEl.textContent =
-          n === 1 ? '1 permit selected' : n + ' permits selected';
-        runBtn.disabled = n === 0;
-        permitsTbody.querySelectorAll('tr[data-idx]').forEach(function (tr) {
-          const idx = parseInt(tr.getAttribute('data-idx'), 10);
-          const on = selected.has(idx);
-          const detail = detailIdx === idx;
-          tr.classList.toggle('bg-sky-500/10', on);
-          tr.classList.toggle('ring-1', on);
-          tr.classList.toggle('ring-inset', on);
-          tr.classList.toggle('ring-sky-500/30', on);
-          tr.classList.toggle('border-l-4', detail);
-          tr.classList.toggle('border-l-amber-400', detail);
-          tr.classList.toggle('bg-amber-500/[0.07]', detail);
-          const cb = tr.querySelector('input[type="checkbox"]');
-          if (cb) cb.checked = on;
+      function setPipelineUi(phase) {
+        const idle = phase === 'idle' || phase === null;
+        steps.forEach(function (el, i) {
+          el.classList.remove('active', 'done');
+          if (idle) return;
+          if (typeof phase === 'number' && i < phase) el.classList.add('done');
+          if (typeof phase === 'number' && i === phase) el.classList.add('active');
+        });
+        conns.forEach(function (el, i) {
+          const pulse =
+            !idle &&
+            typeof phase === 'number' &&
+            i === Math.min(phase, conns.length - 1);
+          el.classList.toggle('pulse', pulse);
         });
       }
 
-      function toggleIndex(idx) {
-        if (selected.has(idx)) selected.delete(idx);
-        else selected.add(idx);
-        updateRowClasses();
+      function animateNumber(el, from, to, dur) {
+        const start = performance.now();
+        function frame(t) {
+          const p = Math.min(1, (t - start) / dur);
+          const ease = 1 - Math.pow(1 - p, 3);
+          el.textContent = String(Math.round(from + (to - from) * ease));
+          if (p < 1) requestAnimationFrame(frame);
+        }
+        requestAnimationFrame(frame);
       }
+
+      function tickClock() {
+        const el = document.getElementById('header-clock');
+        const fmt = new Intl.DateTimeFormat('en-CA', {
+          timeZone: 'America/Edmonton',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: false,
+        });
+        el.textContent = fmt.format(new Date());
+      }
+      tickClock();
+      setInterval(tickClock, 1000);
 
       function escapeHtml(s) {
         return String(s)
@@ -278,6 +1016,14 @@
         );
       }
 
+      function workBadgeClass(wt) {
+        const s = String(wt).toLowerCase();
+        if (/\bdemo/i.test(s)) return 'demolition';
+        if (/\bimprove|\bexisting|\brenov/i.test(s)) return 'improvement';
+        if (/\bnew\b/i.test(s)) return 'new';
+        return 'other';
+      }
+
       function contractorPhone(p) {
         const keys = [
           'contractorphone',
@@ -287,8 +1033,7 @@
           'phone',
         ];
         for (let i = 0; i < keys.length; i++) {
-          const k = keys[i];
-          const v = p[k];
+          const v = p[keys[i]];
           if (v != null && String(v).trim() !== '') return String(v);
         }
         return '';
@@ -305,9 +1050,7 @@
 
       function latLongText(p) {
         if (p.point && Array.isArray(p.point.coordinates) && p.point.coordinates.length >= 2) {
-          const lng = p.point.coordinates[0];
-          const lat = p.point.coordinates[1];
-          return lat + ', ' + lng + ' (GeoJSON point)';
+          return p.point.coordinates[1] + ', ' + p.point.coordinates[0];
         }
         if (p.latitude != null && p.longitude != null) {
           return String(p.latitude) + ', ' + String(p.longitude);
@@ -316,27 +1059,24 @@
       }
 
       function formatDetailValue(v) {
-        if (v == null || v === '') return '<span class="text-slate-500">—</span>';
+        if (v == null || v === '') return '<span style="color:var(--muted)">—</span>';
         if (typeof v === 'object') {
           return (
-            '<pre class="mt-1 max-h-48 overflow-auto rounded border border-surface-border bg-black/25 p-2 font-mono text-[11px] leading-relaxed text-slate-300">' +
+            '<pre style="margin:0;max-height:10rem;overflow:auto;font-size:0.65rem;font-family:var(--font-mono);background:#0a0a0a;padding:0.5rem;border-radius:8px;border:1px solid var(--border)">' +
             escapeHtml(JSON.stringify(v, null, 2)) +
             '</pre>'
           );
         }
-        return '<span class="text-slate-200">' + escapeHtml(String(v)) + '</span>';
+        return '<span>' + escapeHtml(String(v)) + '</span>';
       }
 
-      function detailDlRow(label, innerHtml) {
+      function detailRow(label, inner) {
         return (
-          '<div class="border-b border-surface-border py-2.5 sm:grid sm:grid-cols-3 sm:gap-2">' +
-          '<dt class="text-xs font-medium uppercase tracking-wide text-slate-500">' +
+          '<div class="detail-dl-row"><dt>' +
           escapeHtml(label) +
-          '</dt>' +
-          '<dd class="mt-0.5 min-w-0 text-sm sm:col-span-2 sm:mt-0">' +
-          innerHtml +
-          '</dd>' +
-          '</div>'
+          '</dt><dd>' +
+          inner +
+          '</dd></div>'
         );
       }
 
@@ -344,60 +1084,51 @@
         const phone = contractorPhone(p);
         const phoneHtml = phone
           ? escapeHtml(phone)
-          : '<span class="text-slate-500">Not in this Open Data dataset</span>';
+          : '<span style="color:var(--muted)">Not in Open Data</span>';
         const owner = p.applicantname || p.ownername || '';
-        const ownerHtml = owner
-          ? escapeHtml(String(owner))
-          : '<span class="text-slate-500">—</span>';
+        const ownerHtml = owner ? escapeHtml(String(owner)) : '<span style="color:var(--muted)">—</span>';
         const addrLines = fullAddressLines(p);
         const addrHtml =
           addrLines.length > 0
-            ? addrLines.map(function (line) {
-                return escapeHtml(line);
+            ? addrLines.map(function (l) {
+                return escapeHtml(l);
               }).join('<br/>')
-            : '<span class="text-slate-500">—</span>';
-        const community =
-          [p.communityname, p.communitycode].filter(Boolean).join(' · ') || '';
+            : '<span style="color:var(--muted)">—</span>';
+        const community = [p.communityname, p.communitycode].filter(Boolean).join(' · ') || '';
         const latlng = latLongText(p);
-        const latlngHtml = latlng
-          ? escapeHtml(latlng)
-          : '<span class="text-slate-500">—</span>';
+        const latlngHtml = latlng ? escapeHtml(latlng) : '<span style="color:var(--muted)">—</span>';
         const units =
           p.housingunits != null && p.housingunits !== ''
             ? escapeHtml(String(p.housingunits))
-            : '<span class="text-slate-500">—</span>';
+            : '<span style="color:var(--muted)">—</span>';
 
-        let primary =
-          '<div class="rounded-lg border border-surface-border bg-surface/40">' +
-          detailDlRow('Permit number', formatDetailValue(p.permitnum)) +
-          detailDlRow('Status', formatDetailValue(p.statuscurrent)) +
-          detailDlRow('Applied date', formatDate(p.applieddate)) +
-          detailDlRow('Issued date', formatDate(p.issueddate)) +
-          detailDlRow('Completed date', formatDate(p.completeddate)) +
-          detailDlRow('Contractor name', formatDetailValue(p.contractorname)) +
-          detailDlRow('Contractor phone', phoneHtml) +
-          detailDlRow('Applicant / owner name', ownerHtml) +
-          detailDlRow('Address (full)', addrHtml) +
-          detailDlRow('Community / neighbourhood', formatDetailValue(community)) +
-          detailDlRow('Work class group', formatDetailValue(p.workclassgroup)) +
-          detailDlRow('Description of work', formatDetailValue(p.description)) +
-          detailDlRow('Estimated project cost', formatMoney(p.estprojectcost)) +
-          detailDlRow('Number of units', units) +
-          detailDlRow('Location (lat / long)', latlngHtml) +
+        let html =
+          '<div style="border:1px solid var(--border);border-radius:12px;overflow:hidden">' +
+          detailRow('Permit number', formatDetailValue(p.permitnum)) +
+          detailRow('Status', formatDetailValue(p.statuscurrent)) +
+          detailRow('Applied date', formatDate(p.applieddate)) +
+          detailRow('Issued date', formatDate(p.issueddate)) +
+          detailRow('Completed date', formatDate(p.completeddate)) +
+          detailRow('Contractor name', formatDetailValue(p.contractorname)) +
+          detailRow('Contractor phone', phoneHtml) +
+          detailRow('Applicant / owner name', ownerHtml) +
+          detailRow('Address (full)', addrHtml) +
+          detailRow('Community / neighbourhood', formatDetailValue(community)) +
+          detailRow('Work class group', formatDetailValue(p.workclassgroup)) +
+          detailRow('Description of work', formatDetailValue(p.description)) +
+          detailRow('Estimated project cost', formatMoney(p.estprojectcost)) +
+          detailRow('Number of units', units) +
+          detailRow('Location (lat / long)', latlngHtml) +
           '</div>';
 
         const keys = Object.keys(p).sort();
-        let allRows = '';
+        html +=
+          '<p style="margin:1rem 0 0.5rem;font-size:0.62rem;font-weight:700;letter-spacing:0.15em;color:var(--muted);text-transform:uppercase">All fields</p><div style="border:1px solid var(--border);border-radius:12px;overflow:hidden">';
         keys.forEach(function (k) {
-          allRows += detailDlRow(k, formatDetailValue(p[k]));
+          html += detailRow(k, formatDetailValue(p[k]));
         });
-
-        primary +=
-          '<h4 class="mb-2 mt-8 text-xs font-semibold uppercase tracking-wide text-slate-500">All fields (raw record)</h4>' +
-          '<div class="rounded-lg border border-surface-border bg-surface/30">' +
-          allRows +
-          '</div>';
-        return primary;
+        html += '</div>';
+        return html;
       }
 
       function closeDetail() {
@@ -428,74 +1159,109 @@
         updateRowClasses();
       }
 
-      function renderPermitTable(permits) {
+      function updateRowClasses() {
+        const n = selected.size;
+        selectedCountEl.innerHTML =
+          n === 0
+            ? '0 <strong>targets</strong> selected'
+            : n === 1
+              ? '1 <strong>target</strong> selected'
+              : (
+                  '<strong>' +
+                  n +
+                  '</strong> targets selected'
+                );
+        runBtn.disabled = n === 0;
+        runBtn.classList.toggle('has-selection', n > 0);
+        permitsFeed.querySelectorAll('.feed-card[data-idx]').forEach(function (card) {
+          const idx = parseInt(card.getAttribute('data-idx'), 10);
+          card.classList.toggle('selected', selected.has(idx));
+          card.classList.toggle('detail-row', detailIdx === idx);
+          const cb = card.querySelector('input[type="checkbox"]');
+          if (cb) cb.checked = selected.has(idx);
+        });
+      }
+
+      function toggleIndex(idx) {
+        if (selected.has(idx)) selected.delete(idx);
+        else selected.add(idx);
+        updateRowClasses();
+      }
+
+      function showSkeleton() {
+        permitsFeed.innerHTML = '';
+        const stack = document.createElement('div');
+        stack.className = 'skeleton-stack';
+        for (let i = 0; i < 6; i++) {
+          const sk = document.createElement('div');
+          sk.className = 'sk-card';
+          sk.style.animationDelay = i * 50 + 'ms';
+          stack.appendChild(sk);
+        }
+        permitsFeed.appendChild(stack);
+      }
+
+      function renderPermitFeed(permits) {
         closeDetail();
-        permitsTbody.innerHTML = '';
+        permitsFeed.innerHTML = '';
         selected.clear();
         permits.forEach(function (p, idx) {
-          const tr = document.createElement('tr');
-          tr.className =
-            'cursor-pointer border-b border-surface-border text-slate-300 transition hover:bg-white/5';
-          tr.setAttribute('data-idx', String(idx));
+          const wt = workType(p);
+          const bClass = workBadgeClass(wt);
+          const card = document.createElement('article');
+          card.className = 'feed-card';
+          card.setAttribute('data-idx', String(idx));
+          card.style.animationDelay = idx * 50 + 'ms';
 
           const permitnum = escapeHtml(p.permitnum || '—');
           const contractor = escapeHtml(p.contractorname || '—');
           const addr = escapeHtml(p.originaladdress || p.address || '—');
-          const wt = escapeHtml(workType(p) || '—');
           const cost = formatMoney(p.estprojectcost);
           const applied = formatDate(p.applieddate);
+          const wtEsc = escapeHtml(wt || '—');
 
-          tr.innerHTML =
-            '<td class="cursor-default px-3 py-2 align-middle" data-cb-cell="1">' +
-            '<input type="checkbox" class="perm-cb h-4 w-4 cursor-pointer rounded border-surface-border bg-surface text-accent focus:ring-accent" aria-label="Select permit ' +
+          card.innerHTML =
+            '<div class="cb-wrap"><input type="checkbox" class="perm-cb" aria-label="Select ' +
             permitnum +
-            '" />' +
-            '</td>' +
-            '<td class="px-3 py-2 font-mono text-xs text-accent">' +
+            '" /></div>' +
+            '<span class="badge-wt ' +
+            bClass +
+            '">' +
+            wtEsc +
+            '</span>' +
+            '<p class="mono-id">' +
             permitnum +
-            '</td>' +
-            '<td class="max-w-[140px] truncate px-3 py-2" title="' +
+            '</p>' +
+            '<p class="feed-title">' +
             contractor +
-            '">' +
-            contractor +
-            '</td>' +
-            '<td class="max-w-[180px] truncate px-3 py-2" title="' +
+            '</p>' +
+            '<p class="feed-meta">' +
             addr +
-            '">' +
-            addr +
-            '</td>' +
-            '<td class="max-w-[100px] truncate px-3 py-2 text-xs" title="' +
-            wt +
-            '">' +
-            wt +
-            '</td>' +
-            '<td class="whitespace-nowrap px-3 py-2 text-right text-xs">' +
+            '<br/><span class="mono-cyan">' +
             cost +
-            '</td>' +
-            '<td class="whitespace-nowrap px-3 py-2 text-xs text-slate-400">' +
+            '</span> · applied ' +
             applied +
-            '</td>';
+            '</p>';
 
-          const cb = tr.querySelector('.perm-cb');
+          const cb = card.querySelector('.perm-cb');
           cb.addEventListener('click', function (e) {
             e.preventDefault();
             e.stopPropagation();
             toggleIndex(idx);
           });
-          tr.addEventListener('click', function (e) {
-            if (e.target.closest('.perm-cb')) return;
+          card.addEventListener('click', function (e) {
+            if (e.target.closest('.perm-cb') || e.target.closest('.cb-wrap')) return;
             openDetail(idx);
           });
 
-          permitsTbody.appendChild(tr);
+          permitsFeed.appendChild(card);
         });
         updateRowClasses();
       }
 
       async function loadPermits() {
-        permitsLoadMsg.textContent = 'Loading permits from Calgary Open Data…';
-        permitsLoadMsg.classList.remove('text-red-400');
-        permitsLoadMsg.classList.add('text-slate-500');
+        permitsLoadMsg.textContent = 'pulling stream…';
+        showSkeleton();
         try {
           const res = await fetch('/permits');
           const data = await res.json().catch(function () {
@@ -503,82 +1269,136 @@
           });
           if (!res.ok) {
             throw new Error(
-              (data && (data.error || data.detail)) ||
-                'Failed to load permits (' + res.status + ')',
+              (data && (data.error || data.detail)) || 'Feed error (' + res.status + ')',
             );
           }
-          if (!Array.isArray(data)) {
-            throw new Error('Invalid permits response');
-          }
+          if (!Array.isArray(data)) throw new Error('Invalid feed payload');
           allPermits = data;
-          renderPermitTable(allPermits);
+          renderPermitFeed(allPermits);
           permitsLoadMsg.textContent =
-            allPermits.length +
-            ' permit' +
-            (allPermits.length === 1 ? '' : 's') +
-            ' loaded (last 14 days, max 25).';
+            String(allPermits.length) + ' rows · last 14d · cap 25';
         } catch (e) {
           allPermits = [];
-          permitsTbody.innerHTML = '';
-          permitsLoadMsg.textContent = e.message || String(e);
-          permitsLoadMsg.classList.remove('text-slate-500');
-          permitsLoadMsg.classList.add('text-red-400');
+          permitsFeed.innerHTML =
+            '<p style="padding:1rem;color:var(--accent);font-size:0.85rem">' +
+            escapeHtml(e.message || String(e)) +
+            '</p>';
+          permitsLoadMsg.textContent = 'feed offline';
           updateRowClasses();
         }
       }
 
-      function badgeClass(status) {
-        if (status === 'Postcard Sent') {
-          return 'bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/40';
-        }
-        if (status === 'Copy Generated') {
-          return 'bg-sky-500/15 text-sky-300 ring-1 ring-sky-500/40';
-        }
-        return 'bg-red-500/15 text-red-300 ring-1 ring-red-500/40';
+      function streamText(el, fullText, msPerChar) {
+        return new Promise(function (resolve) {
+          let i = 0;
+          const tick = function () {
+            if (i <= fullText.length) {
+              el.textContent = fullText.slice(0, i);
+              i++;
+              setTimeout(tick, msPerChar);
+            } else resolve();
+          };
+          tick();
+        });
       }
 
-      function renderCard(row) {
-        const contractor = escapeHtml(row.contractorname || '—');
-        const address = escapeHtml(row.address || '—');
-        const permitLine = escapeHtml(
-          [row.permitnum || '—', row.workclassgroup || ''].filter(Boolean).join(' · ') || '—',
-        );
-        const copy = escapeHtml(row.copy || '(No copy generated)');
-        const status = row.postcardStatus || 'Failed';
-        const badge = badgeClass(status);
+      function statusRibbon(status) {
+        if (status === 'Postcard Sent') return ['sent', 'SENT'];
+        if (status === 'Copy Generated') return ['queued', 'QUEUED'];
+        return ['failed', 'FAILED'];
+      }
 
-        const el = document.createElement('article');
-        el.className =
-          'rounded-lg border border-surface-border bg-surface/60 p-5 shadow-md';
-        el.innerHTML =
-          '<div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">' +
-          '<div class="min-w-0 flex-1">' +
-          '<h3 class="text-lg font-semibold text-white">' +
-          contractor +
-          '</h3>' +
-          '<p class="mt-1 text-sm text-slate-400">' +
-          address +
-          '</p>' +
-          '<p class="mt-2 font-mono text-xs text-slate-500">' +
-          permitLine +
-          '</p>' +
-          '</div>' +
-          '<span class="inline-flex shrink-0 self-start rounded-full px-3 py-1 text-xs font-medium ' +
-          badge +
+      function renderPostcard(row, i) {
+        const wrap = document.createElement('div');
+        wrap.className = 'postcard-wrap';
+        wrap.style.animationDelay = i * 80 + 'ms';
+        const copyShort = (row.copy || '').slice(0, 220) + ((row.copy || '').length > 220 ? '…' : '');
+        const addr = escapeHtml(row.address || '—');
+        const rib = statusRibbon(row.postcardStatus || 'Failed');
+
+        wrap.innerHTML =
+          '<div class="postcard">' +
+          '<div class="ribbon ' +
+          rib[0] +
           '">' +
-          escapeHtml(status) +
-          '</span>' +
+          rib[1] +
           '</div>' +
-          '<div class="mt-4 rounded-md border border-surface-border bg-surface-card p-3">' +
-          '<p class="whitespace-pre-wrap text-sm leading-relaxed text-slate-300">' +
-          copy +
-          '</p>' +
+          '<div class="stamp"></div>' +
+          '<div class="pc-front">' +
+          escapeHtml(copyShort) +
+          '</div>' +
+          '<div class="pc-divider"></div>' +
+          '<div class="pc-addr">' +
+          addr +
+          '</div>' +
           '</div>';
-        return el;
+        return wrap;
+      }
+
+      function updateCostEstimate() {
+        const inputCost = tokenCount * 0.00015 + postcardCount * 0.85;
+        pipelineCostEl.textContent = '~$' + inputCost.toFixed(2);
+      }
+
+      async function playAiSequence(rows) {
+        aiIdle.classList.add('hidden');
+        aiLog.classList.remove('hidden');
+        aiLog.innerHTML = '';
+        for (let i = 0; i < rows.length; i++) {
+          const row = rows[i];
+          const block = document.createElement('div');
+          block.className = 'ai-block contractor-in';
+          const head = document.createElement('div');
+          head.className = 'ai-block-head';
+          head.innerHTML =
+            '<span class="ai-name">' +
+            escapeHtml(row.contractorname || 'Contractor') +
+            '</span><span class="mono-id">' +
+            escapeHtml(row.permitnum || '') +
+            '</span>';
+          const copyEl = document.createElement('div');
+          copyEl.className = 'ai-copy';
+          const cursor = document.createElement('span');
+          cursor.className = 'ai-cursor';
+          block.appendChild(head);
+          block.appendChild(copyEl);
+          block.appendChild(cursor);
+          aiLog.appendChild(block);
+          aiLog.scrollTop = aiLog.scrollHeight;
+
+          const full = row.copy || '(No copy generated)';
+          const ms = Math.max(8, Math.min(22, Math.floor(1200 / Math.max(full.length, 40))));
+          await streamText(copyEl, full, ms);
+          cursor.remove();
+          const add = 320 + Math.floor(Math.random() * 520);
+          const prev = tokenCount;
+          tokenCount += add;
+          animateNumber(statTokens, prev, tokenCount, 400);
+          if (row.copy && row.postcardStatus !== 'Failed') {
+            postcardCount++;
+            statPostcards.textContent = String(postcardCount);
+          }
+          updateCostEstimate();
+          const chk = document.createElement('span');
+          chk.className = 'ai-check';
+          chk.textContent = '✓';
+          head.appendChild(chk);
+          block.style.opacity = '0.92';
+          await new Promise(function (r) {
+            setTimeout(r, 180);
+          });
+        }
+      }
+
+      function resetAiIdle() {
+        aiLog.classList.add('hidden');
+        aiLog.innerHTML = '';
+        aiIdle.classList.remove('hidden');
+        aiIdleMsg.textContent = 'Neural queue idle — select permits and launch.';
       }
 
       runBtn.addEventListener('click', async function () {
-        resultsError.classList.add('hidden');
+        resultsError.classList.remove('visible');
         resultsError.textContent = '';
         closeDetail();
 
@@ -592,11 +1412,21 @@
 
         const send = sendInput.checked;
         runBtn.disabled = true;
-        setStatus('running');
-        resultsEmpty.classList.add('hidden');
-        resultsList.classList.remove('hidden');
-        resultsList.innerHTML =
-          '<p class="text-center text-slate-500 py-6">Running pipeline…</p>';
+        runBtn.classList.add('is-running');
+        setPipelineUi(0);
+        setTimeout(function () {
+          setPipelineUi(1);
+        }, 220);
+
+        mailStack.innerHTML = '';
+        mailStack.classList.add('hidden');
+        mailEmpty.classList.remove('hidden');
+        resetAiIdle();
+        tokenCount = 0;
+        postcardCount = 0;
+        statTokens.textContent = '0';
+        statPostcards.textContent = '0';
+        updateCostEstimate();
 
         try {
           const res = await fetch('/run', {
@@ -614,43 +1444,42 @@
               'Request failed (' + res.status + ')';
             throw new Error(msg);
           }
+          if (!Array.isArray(data)) throw new Error('Invalid response');
 
-          if (!Array.isArray(data)) {
-            throw new Error('Invalid response from server');
-          }
+          setPipelineUi(2);
+          await playAiSequence(data);
+          setPipelineUi(3);
 
-          resultsList.innerHTML = '';
-          if (data.length === 0) {
-            resultsList.innerHTML =
-              '<p class="text-center text-slate-500 py-6">No results returned.</p>';
-          } else {
-            data.forEach(function (row) {
-              resultsList.appendChild(renderCard(row));
-            });
-          }
-          setStatus('done');
+          mailEmpty.classList.add('hidden');
+          mailStack.classList.remove('hidden');
+          data.forEach(function (row, i) {
+            mailStack.appendChild(renderPostcard(row, i));
+          });
+
+          mainGrid.classList.add('success-flash');
+          setTimeout(function () {
+            mainGrid.classList.remove('success-flash');
+          }, 700);
         } catch (e) {
-          resultsList.innerHTML = '';
-          resultsEmpty.classList.remove('hidden');
-          resultsList.classList.add('hidden');
+          resetAiIdle();
+          aiIdleMsg.textContent = e.message || String(e);
           resultsError.textContent = e.message || String(e);
-          resultsError.classList.remove('hidden');
-          setStatus('idle');
+          resultsError.classList.add('visible');
+          setPipelineUi('idle');
         } finally {
+          runBtn.classList.remove('is-running');
+          runBtn.disabled = selected.size === 0;
+          setTimeout(function () {
+            setPipelineUi('idle');
+          }, 900);
           updateRowClasses();
         }
       });
 
-      detailClose.addEventListener('click', function () {
-        closeDetail();
-      });
-      detailBackdrop.addEventListener('click', function () {
-        closeDetail();
-      });
+      detailClose.addEventListener('click', closeDetail);
+      detailBackdrop.addEventListener('click', closeDetail);
       document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape' && detailIdx !== null) {
-          closeDetail();
-        }
+        if (e.key === 'Escape' && detailIdx !== null) closeDetail();
       });
 
       loadPermits();
