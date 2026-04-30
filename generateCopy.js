@@ -3,13 +3,31 @@ const OpenAI = require('openai');
 const MODEL = 'gpt-4o-mini';
 
 /**
+ * Map permit work signals to a vague phrase (never echo description verbatim).
+ * @param {object} permit
+ */
+function vagueWorkPhrase(permit) {
+  const blob = [
+    permit.workclassgroup,
+    permit.workclass,
+    permit.permittypemapped,
+    permit.permittype,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+  if (/\bdemo/i.test(blob)) return 'a demolition';
+  if (/\baddition/i.test(blob)) return 'an addition';
+  if (/\bimprove|\bexisting|\brenov|\brepair/i.test(blob)) return 'a renovation';
+  if (/\bnew\b/i.test(blob) && !/\brenew/i.test(blob)) return 'a new build';
+  return 'your project';
+}
+
+/**
  * @param {object} permit Calgary Open Data building permit row (or shaped input)
  * @param {string} [permit.contractorname]
- * @param {string} [permit.address] project address (falls back to originaladdress)
- * @param {string} [permit.originaladdress]
+ * @param {string} [permit.communityname]
  * @param {string} [permit.workclassgroup]
- * @param {string} [permit.description]
- * @param {string|number} [permit.estprojectcost]
  * @returns {Promise<string|null>} Plain postcard copy, or null on failure
  */
 async function generateCopy(permit) {
@@ -19,38 +37,38 @@ async function generateCopy(permit) {
     return null;
   }
 
-  const address = permit.address || permit.originaladdress || '';
-  const payload = {
-    contractorname: permit.contractorname ?? '',
-    address,
-    workclassgroup: permit.workclassgroup ?? '',
-    description: permit.description ?? '',
-    estprojectcost: permit.estprojectcost ?? '',
+  const contractor = (permit.contractorname && String(permit.contractorname).trim()) || '';
+  const neighbourhood = (permit.communityname && String(permit.communityname).trim()) || '';
+  const workVague = vagueWorkPhrase(permit);
+
+  const hints = {
+    contractorNameOrEmpty: contractor,
+    neighbourhoodOrEmpty: neighbourhood,
+    workVaguePhrase: workVague,
   };
 
-  const userContent = `Write postcard copy for a REAL printed postcard (Canada Post). Physical card — space is tiny.
+  const userContent = `Write the full text for a small postcard (YYC ProBuild, Calgary construction supply).
 
-Permit fields (JSON):
-${JSON.stringify(payload, null, 2)}
+Context for you only (do NOT paste field names, JSON, permit IDs, costs, or street addresses into the postcard):
+${JSON.stringify(hints, null, 2)}
 
-STRICT LIMITS (must all be satisfied):
-- Exactly 6 lines of text (use real line breaks between lines).
-- Line 5 must be completely blank (empty line only).
-- At most 8 words per line on lines 1–4 and line 6 (count words; wrap if needed).
-- Entire message under 300 characters including spaces and line breaks.
+Rules for the postcard text itself:
+- Sound like a neighbour left a friendly note, not a company that mined a database.
+- NEVER include a permit number, file number, or reference number.
+- NEVER include dollar amounts, estimates, budgets, or the word "cost".
+- NEVER say or imply you "know" their job from records, open data, permits, filings, or surveillance.
+- NEVER quote the project's written description; stay vague on scope (use the suggested work vibe only: new build, renovation, addition, demolition, or "your project").
+- Opening: if a contractor/company name is provided in the hints, greet them naturally (e.g. "Hi Porch Lamp Fine Homes,"). If the name is empty, start with exactly: Hi there,
+- Optionally weave in the neighbourhood name in a casual way if it is non-empty (e.g. "in Brentwood?"). If neighbourhood is empty, skip location names entirely.
+- One short line that YYC ProBuild supplies local contractors across Calgary (plain words, no jargon).
+- End with this exact sentence as its own closing line: Call us for a free quote.
+- At most 4 sentences total (including the greeting and the closing line).
+- Under 200 characters total, including spaces and punctuation. Plain text only — no markdown, no bullets, no labels like "Line 1:".
 
-EXACT STRUCTURE:
-- Line 1: If contractor name is present and non-empty, start with: Hi [that name],
-  If missing or blank, use exactly: Hi there,
-- Lines 2–4: ONE short punchy sentence about THIS permit only (project type, address, or scope). Split across lines 2–4 only if needed to stay under 8 words per line. No filler.
-- Line 5: (blank line — nothing on this line)
-- Line 6: Exactly this text: Call YYC ProBuild for a free quote.
+Good tone example (length and vibe only; do not copy verbatim):
+"Hi Porch Lamp Fine Homes, working on a new build in Brentwood? YYC ProBuild supplies local contractors across Calgary. Call us for a free quote."
 
-TONE: Direct and human, like a quick note from a neighbour. No corporate speak.
-
-FORBIDDEN words/phrases (do not use): commitment, expertise, trusted partner, we understand, we recognize, delighted, leverage, solutions, synergy, best-in-class, proud to, at YYC ProBuild we, your partner in.
-
-Plain text only. No "Line 1:" labels. No markdown.`;
+Bad (never do this): mentioning permit numbers, dollar figures, full street addresses, or "we know about your project."`;
 
   try {
     const client = new OpenAI({ apiKey });
@@ -60,12 +78,12 @@ Plain text only. No "Line 1:" labels. No markdown.`;
         {
           role: 'system',
           content:
-            'You write ultra-short postcard copy for YYC ProBuild (Calgary construction supply). Real mail: obey every character, line, and word limit in the user message. Output only the postcard text.',
+            'You write very short, warm postcard blurbs for YYC ProBuild in Calgary. You refuse to sound creepy, data-driven, or surveillance-like. You follow the user rules exactly and output only the postcard body text.',
         },
         { role: 'user', content: userContent },
       ],
-      max_tokens: 220,
-      temperature: 0.7,
+      max_tokens: 180,
+      temperature: 0.65,
     });
 
     const text = completion.choices[0]?.message?.content?.trim();
