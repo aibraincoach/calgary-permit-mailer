@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Calgary Permit Mailer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            surface: { DEFAULT: '#0f1419', card: '#161d27', border: '#243044' },
+            accent: { DEFAULT: '#38bdf8', muted: '#64748b' },
+          },
+        },
+      },
+    };
+  </script>
+</head>
+<body class="min-h-screen bg-surface text-slate-200 antialiased">
+  <div class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+    <header class="mb-10 border-b border-surface-border pb-8">
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 class="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+            Calgary Permit Mailer
+          </h1>
+          <p class="mt-2 text-sm text-slate-400 sm:text-base">
+            Automated direct mail for Calgary contractors
+          </p>
+        </div>
+        <div
+          id="pipeline-indicator"
+          class="flex items-center gap-2 rounded-full border border-surface-border bg-surface-card px-4 py-2 text-sm"
+        >
+          <span
+            id="indicator-dot"
+            class="h-2 w-2 rounded-full bg-slate-500"
+            aria-hidden="true"
+          ></span>
+          <span id="indicator-label" class="text-slate-400">Idle</span>
+        </div>
+      </div>
+    </header>
+
+    <section
+      class="mb-10 rounded-xl border border-surface-border bg-surface-card p-6 shadow-xl"
+    >
+      <h2 class="mb-6 text-lg font-medium text-white">Controls</h2>
+      <div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="lg:col-span-2">
+          <label for="days" class="mb-2 block text-sm font-medium text-slate-300">
+            Days back: <span id="days-value" class="tabular-nums text-accent">14</span>
+          </label>
+          <input
+            type="range"
+            id="days"
+            min="1"
+            max="30"
+            value="14"
+            class="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-700 accent-sky-400"
+          />
+        </div>
+        <div>
+          <label for="limit" class="mb-2 block text-sm font-medium text-slate-300">Limit</label>
+          <input
+            type="number"
+            id="limit"
+            min="1"
+            max="100"
+            value="5"
+            class="w-full rounded-lg border border-surface-border bg-surface px-3 py-2 text-white outline-none ring-accent focus:ring-2"
+          />
+        </div>
+        <div class="flex flex-col justify-end">
+          <label class="mb-2 flex cursor-pointer items-center gap-3 text-sm text-slate-300">
+            <input
+              type="checkbox"
+              id="send"
+              class="h-4 w-4 rounded border-surface-border bg-surface text-accent focus:ring-accent"
+            />
+            Send postcards
+          </label>
+          <p class="mt-1 text-xs text-slate-500">Uses PostGrid test keys &amp; TO address from .env</p>
+        </div>
+      </div>
+      <button
+        type="button"
+        id="run-btn"
+        class="mt-8 w-full rounded-lg bg-sky-500 px-6 py-3.5 text-base font-semibold text-slate-900 shadow-lg transition hover:bg-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2 focus:ring-offset-surface-card disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        Run Pipeline
+      </button>
+    </section>
+
+    <section>
+      <h2 class="mb-4 text-lg font-medium text-white">Results</h2>
+      <div id="results-empty" class="rounded-xl border border-dashed border-surface-border bg-surface-card/50 p-12 text-center text-slate-500">
+        Run the pipeline to see permits and generated copy here.
+      </div>
+      <div id="results-list" class="hidden space-y-4"></div>
+      <p id="results-error" class="mt-4 hidden text-sm text-red-400"></p>
+    </section>
+  </div>
+
+  <script>
+    (function () {
+      const daysInput = document.getElementById('days');
+      const daysValue = document.getElementById('days-value');
+      const limitInput = document.getElementById('limit');
+      const sendInput = document.getElementById('send');
+      const runBtn = document.getElementById('run-btn');
+      const indicatorDot = document.getElementById('indicator-dot');
+      const indicatorLabel = document.getElementById('indicator-label');
+      const resultsEmpty = document.getElementById('results-empty');
+      const resultsList = document.getElementById('results-list');
+      const resultsError = document.getElementById('results-error');
+
+      daysInput.addEventListener('input', function () {
+        daysValue.textContent = daysInput.value;
+      });
+
+      function setStatus(state) {
+        indicatorLabel.textContent =
+          state === 'idle' ? 'Idle' : state === 'running' ? 'Running…' : 'Done';
+        indicatorDot.className = 'h-2 w-2 rounded-full ';
+        if (state === 'idle') {
+          indicatorDot.className += 'bg-slate-500';
+        } else if (state === 'running') {
+          indicatorDot.className += 'animate-pulse bg-amber-400';
+        } else {
+          indicatorDot.className += 'bg-emerald-400';
+        }
+      }
+
+      function badgeClass(status) {
+        if (status === 'Postcard Sent') {
+          return 'bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/40';
+        }
+        if (status === 'Copy Generated') {
+          return 'bg-sky-500/15 text-sky-300 ring-1 ring-sky-500/40';
+        }
+        return 'bg-red-500/15 text-red-300 ring-1 ring-red-500/40';
+      }
+
+      function escapeHtml(s) {
+        return String(s)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
+      }
+
+      function renderCard(row) {
+        const contractor = escapeHtml(row.contractorname || '—');
+        const address = escapeHtml(row.address || '—');
+        const permitLine = escapeHtml(
+          [row.permitnum || '—', row.workclassgroup || ''].filter(Boolean).join(' · ') || '—',
+        );
+        const copy = escapeHtml(row.copy || '(No copy generated)');
+        const status = row.postcardStatus || 'Failed';
+        const badge = badgeClass(status);
+
+        const el = document.createElement('article');
+        el.className =
+          'rounded-xl border border-surface-border bg-surface-card p-6 shadow-lg';
+        el.innerHTML =
+          '<div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">' +
+          '<div class="min-w-0 flex-1">' +
+          '<h3 class="text-xl font-semibold text-white sm:text-2xl">' +
+          contractor +
+          '</h3>' +
+          '<p class="mt-1 text-sm text-slate-400">' +
+          address +
+          '</p>' +
+          '<p class="mt-2 font-mono text-xs text-slate-500">' +
+          permitLine +
+          '</p>' +
+          '</div>' +
+          '<span class="inline-flex shrink-0 self-start rounded-full px-3 py-1 text-xs font-medium ' +
+          badge +
+          '">' +
+          escapeHtml(status) +
+          '</span>' +
+          '</div>' +
+          '<div class="mt-4 rounded-lg border border-surface-border bg-surface/80 p-4">' +
+          '<p class="whitespace-pre-wrap text-sm leading-relaxed text-slate-300">' +
+          copy +
+          '</p>' +
+          '</div>';
+        return el;
+      }
+
+      runBtn.addEventListener('click', async function () {
+        resultsError.classList.add('hidden');
+        resultsError.textContent = '';
+        const limit = Math.min(100, Math.max(1, parseInt(limitInput.value, 10) || 5));
+        const days = Math.min(30, Math.max(1, parseInt(daysInput.value, 10) || 14));
+        const send = sendInput.checked;
+
+        runBtn.disabled = true;
+        setStatus('running');
+        resultsEmpty.classList.add('hidden');
+        resultsList.classList.remove('hidden');
+        resultsList.innerHTML =
+          '<p class="text-center text-slate-500 py-8">Running pipeline…</p>';
+
+        try {
+          const res = await fetch('/run', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ limit, days, send }),
+          });
+          const data = await res.json().catch(function () {
+            return null;
+          });
+
+          if (!res.ok) {
+            const msg =
+              (data && (data.error || data.detail)) ||
+              'Request failed (' + res.status + ')';
+            throw new Error(msg);
+          }
+
+          if (!Array.isArray(data)) {
+            throw new Error('Invalid response from server');
+          }
+
+          resultsList.innerHTML = '';
+          if (data.length === 0) {
+            resultsList.innerHTML =
+              '<p class="text-center text-slate-500 py-8">No permits returned for this range.</p>';
+          } else {
+            data.forEach(function (row) {
+              resultsList.appendChild(renderCard(row));
+            });
+          }
+          setStatus('done');
+        } catch (e) {
+          resultsList.innerHTML = '';
+          resultsEmpty.classList.remove('hidden');
+          resultsList.classList.add('hidden');
+          resultsError.textContent = e.message || String(e);
+          resultsError.classList.remove('hidden');
+          setStatus('idle');
+        } finally {
+          runBtn.disabled = false;
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
