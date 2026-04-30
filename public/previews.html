@@ -89,9 +89,6 @@
       } catch (e) {
         rawLocal = null;
       }
-      console.log('[previews] sessionStorage.getItem("' + PREVIEW_META_KEY + '"):', rawSession);
-      console.log('[previews] localStorage.getItem("' + PREVIEW_META_KEY + '"):', rawLocal);
-
       var meta = {};
       try {
         meta = JSON.parse(rawLocal || rawSession || '{}');
@@ -99,6 +96,8 @@
         console.warn('[previews] Failed to parse preview meta JSON', e);
         meta = {};
       }
+
+      console.log('[previews] meta loaded for', Object.keys(meta).length, 'postcards');
 
       function sleep(ms) {
         return new Promise(function (r) {

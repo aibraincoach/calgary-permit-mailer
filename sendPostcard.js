@@ -1,5 +1,4 @@
 const axios = require('axios');
-const util = require('util');
 
 const DEFAULT_BASE =
   process.env.POSTGRID_API_BASE || 'https://api.postgrid.com/print-mail/v1';
@@ -456,11 +455,7 @@ async function sendPostcard(body) {
     throw new Error(`PostGrid error: ${msg}`);
   }
 
-  try {
-    console.log('[PostGrid raw response]', JSON.stringify(data, null, 2));
-  } catch {
-    console.log('[PostGrid raw response]', util.inspect(data, { depth: 12, colors: false }));
-  }
+  console.log('[PostGrid] postcard created:', data && data.id, 'status:', data && data.status);
 
   return data;
 }

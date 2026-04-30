@@ -878,8 +878,6 @@
 
         for (var j = 0; j < data.length; j++) {
           var row = data[j];
-          console.log('[frontend] row received:', row);
-          console.log('[frontend] pdfUrl:', row.pdfUrl);
           if (row.permitnum) statusByPermit[String(row.permitnum)] = row.postcardStatus || '';
           var el = modalList.children[j];
           if (el) await applyResultRow(el, row, 55 * j);

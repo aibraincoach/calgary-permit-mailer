@@ -63,7 +63,7 @@ app.post('/run', async (req, res) => {
 
   try {
     const results = await runPipeline({ permits, send });
-    console.log('[server] results being sent:', JSON.stringify(results));
+    console.log('[server] run complete:', results.length, 'rows');
     res.json(results);
   } catch (err) {
     const msg = err.message || String(err);
