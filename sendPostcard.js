@@ -465,8 +465,51 @@ async function sendPostcard(body) {
   return data;
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Fetch PDF preview URL after postcard creation (POST often omits `url` until rendered).
+ * @param {string} postcardId PostGrid postcard id from create response (e.g. postcard_…)
+ * @returns {Promise<string|null>} `url` from GET /postcards/{id}, or null on any failure
+ */
+async function fetchPostcardPdf(postcardId) {
+  const id = typeof postcardId === 'string' ? postcardId.trim() : '';
+  if (!id) return null;
+
+  const key = process.env.POSTGRID_API_KEY;
+  if (!key || key === 'your_test_key_here') return null;
+
+  try {
+    await sleep(1500);
+  } catch {
+    return null;
+  }
+
+  const getUrl = `${DEFAULT_BASE.replace(/\/$/, '')}/postcards/${encodeURIComponent(id)}`;
+  try {
+    const res = await axios.get(getUrl, {
+      timeout: 60_000,
+      headers: {
+        'x-api-key': key,
+        Accept: 'application/json',
+      },
+      validateStatus: () => true,
+    });
+    const { data, status } = res;
+    if (status >= 400 || !data || typeof data !== 'object') return null;
+    const u = data.url;
+    if (typeof u === 'string' && /^https?:\/\//i.test(u.trim())) return u.trim();
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 module.exports = {
   sendPostcard,
+  fetchPostcardPdf,
   extractPostgridPostcardMeta,
   DEFAULT_BASE,
   recipientFromPermit,
