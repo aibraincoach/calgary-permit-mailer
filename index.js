@@ -1,6 +1,6 @@
 require('dotenv').config();
 
-const { runPipeline, recipientFromEnv } = require('./pipeline');
+const { runPipeline } = require('./pipeline');
 
 function parseArgs(argv) {
   const args = { send: false, limit: 10, daysBack: 30 };
@@ -17,14 +17,6 @@ async function main() {
   const { send, limit, daysBack } = parseArgs(process.argv);
 
   console.error(`Fetching up to ${limit} permits (issued in last ${daysBack} days)…`);
-
-  if (send && !recipientFromEnv()) {
-    console.error(
-      'Missing recipient: set POSTGRID_TO_ADDRESS_LINE1 and POSTGRID_TO_POSTAL_OR_ZIP (and optional city/province).',
-    );
-    process.exitCode = 1;
-    return;
-  }
 
   const results = await runPipeline({ limit, days: daysBack, send });
 

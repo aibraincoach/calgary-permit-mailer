@@ -1,22 +1,6 @@
 const { fetchPermits } = require('./fetchPermits');
 const { generateCopy } = require('./generateCopy');
-const { sendPostcard } = require('./sendPostcard');
-
-function recipientFromEnv() {
-  const line1 = process.env.POSTGRID_TO_ADDRESS_LINE1;
-  const postal = process.env.POSTGRID_TO_POSTAL_OR_ZIP;
-  if (!line1 || !postal) return null;
-  return {
-    firstName: process.env.POSTGRID_TO_FIRST_NAME || 'Postcard',
-    lastName: process.env.POSTGRID_TO_LAST_NAME || 'Test',
-    addressLine1: line1,
-    addressLine2: process.env.POSTGRID_TO_ADDRESS_LINE2 || undefined,
-    city: process.env.POSTGRID_TO_CITY || 'Calgary',
-    provinceOrState: process.env.POSTGRID_TO_PROVINCE || 'AB',
-    postalOrZip: postal,
-    countryCode: process.env.POSTGRID_TO_COUNTRY || 'CA',
-  };
-}
+const { sendPostcard, recipientFromPermit } = require('./sendPostcard');
 
 function senderFromEnv() {
   const line1 = process.env.POSTGRID_FROM_ADDRESS_LINE1;
@@ -70,12 +54,6 @@ const MAX_PIPELINE_PERMITS = 50;
 async function runPipeline(opts) {
   const send = Boolean(opts.send);
 
-  if (send && !recipientFromEnv()) {
-    throw new Error(
-      'Send requested but POSTGRID_TO_ADDRESS_LINE1 and POSTGRID_TO_POSTAL_OR_ZIP are not set.',
-    );
-  }
-
   let permits;
   if (Array.isArray(opts.permits) && opts.permits.length > 0) {
     permits = opts.permits.slice(0, MAX_PIPELINE_PERMITS);
@@ -88,7 +66,6 @@ async function runPipeline(opts) {
   const backHTML = defaultBackHtml();
   const size = process.env.POSTGRID_POSTCARD_SIZE || '6x4';
   const mailingClass = process.env.POSTGRID_MAILING_CLASS || 'standard_class';
-  const to = send ? recipientFromEnv() : null;
 
   /** @type {Array<{ permitnum: string, contractorname: string, address: string, copy: string, postcardStatus: string }>} */
   const rows = [];
@@ -126,7 +103,7 @@ async function runPipeline(opts) {
 
     const frontHTML = copyToFrontHtml(copy);
     const payload = {
-      to,
+      to: recipientFromPermit(permit),
       ...(from ? { from } : {}),
       frontHTML,
       backHTML,
@@ -162,5 +139,4 @@ async function runPipeline(opts) {
 
 module.exports = {
   runPipeline,
-  recipientFromEnv,
 };
