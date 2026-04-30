@@ -399,26 +399,90 @@
       line-height: 1.35;
     }
 
-    .panel-feed-inner {
+    #feed-panel {
+      display: flex;
+      flex-direction: column;
+    }
+    #feed-panel .panel-feed-inner {
       display: flex;
       flex-direction: column;
       flex: 1;
       min-height: 0;
-      padding: 0.75rem;
-      gap: 0.65rem;
+      padding: 0.5rem 0.65rem 0.35rem;
+      gap: 0.35rem;
     }
-    .filter-bar {
+    .feed-toolbar {
       flex-shrink: 0;
       display: flex;
       flex-wrap: wrap;
-      align-items: flex-end;
-      gap: 0.5rem 0.65rem;
-      padding: 0.65rem 0.75rem;
-      background: #0c0c0c;
+      align-items: center;
+      gap: 0.5rem 0.75rem;
+    }
+    .feed-toolbar.hidden {
+      display: none !important;
+    }
+    .btn-filter-toggle {
+      font-family: var(--font-sans);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      padding: 0.45rem 0.85rem;
+      border-radius: 10px;
       border: 1px solid var(--border);
+      background: #0e0e0e;
+      color: var(--text);
+      cursor: pointer;
+      transition: border-color 0.2s, box-shadow 0.2s, color 0.2s;
+    }
+    .btn-filter-toggle:hover {
+      border-color: rgba(0, 212, 255, 0.45);
+      box-shadow: 0 0 14px rgba(0, 212, 255, 0.1);
+    }
+    .btn-filter-toggle[aria-expanded="true"] {
+      border-color: rgba(255, 45, 45, 0.5);
+      color: var(--accent-soft);
+      box-shadow: 0 0 12px rgba(255, 45, 45, 0.12);
+    }
+    .filter-counter-inline {
+      margin: 0;
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--muted);
+      flex: 1 1 auto;
+      min-width: 140px;
+    }
+    .filter-counter-inline strong {
+      color: var(--cyan);
+      font-weight: 600;
+    }
+
+    .filter-drawer {
+      flex-shrink: 0;
+      overflow: hidden;
+      max-height: 0;
+      opacity: 0;
+      transition: max-height 0.38s ease, opacity 0.25s ease, margin 0.25s ease;
+      margin: 0;
+      border: 1px solid transparent;
       border-radius: var(--radius);
     }
-    .filter-bar.hidden { display: none !important; }
+    .filter-drawer.is-open {
+      max-height: min(50vh, 380px);
+      opacity: 1;
+      margin-bottom: 0.25rem;
+      border-color: var(--border);
+      background: #0c0c0c;
+    }
+    .filter-drawer-inner {
+      padding: 0.65rem 0.7rem;
+      max-height: min(48vh, 360px);
+      overflow-y: auto;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      gap: 0.45rem 0.55rem;
+    }
+
     .filter-field {
       display: flex;
       flex-direction: column;
@@ -440,8 +504,8 @@
       border: 1px solid var(--border);
       background: #0a0a0a;
       color: var(--text);
-      min-width: 7.5rem;
-      max-width: 11rem;
+      min-width: 7rem;
+      max-width: 10rem;
       cursor: pointer;
     }
     .filter-field select:focus {
@@ -450,21 +514,21 @@
       box-shadow: 0 0 0 1px rgba(0, 212, 255, 0.2);
     }
     .filter-cost {
-      flex: 1 1 180px;
-      min-width: 160px;
+      flex: 1 1 160px;
+      min-width: 140px;
     }
     .filter-cost .cost-labels {
       display: flex;
       justify-content: space-between;
       font-family: var(--font-mono);
-      font-size: 0.65rem;
+      font-size: 0.62rem;
       color: var(--cyan);
       margin-bottom: 0.2rem;
     }
     .filter-cost .range-row {
       display: flex;
       flex-direction: column;
-      gap: 0.35rem;
+      gap: 0.3rem;
     }
     .filter-cost input[type="range"] {
       width: 100%;
@@ -474,11 +538,11 @@
     }
     .btn-reset {
       font-family: var(--font-sans);
-      font-size: 0.68rem;
+      font-size: 0.65rem;
       font-weight: 700;
       letter-spacing: 0.06em;
       text-transform: uppercase;
-      padding: 0.45rem 0.75rem;
+      padding: 0.4rem 0.65rem;
       border-radius: 8px;
       border: 1px solid var(--border);
       background: transparent;
@@ -492,22 +556,14 @@
       border-color: rgba(255, 45, 45, 0.45);
       box-shadow: 0 0 14px rgba(255, 45, 45, 0.12);
     }
-    .filter-counter {
-      font-family: var(--font-mono);
-      font-size: 0.68rem;
-      color: var(--muted);
-      flex: 1 1 100%;
-      width: 100%;
-      padding-top: 0.15rem;
-    }
-    .filter-counter strong {
-      color: var(--cyan);
-      font-weight: 600;
-    }
-    .permits-feed-scroll {
-      flex: 1;
+
+    #feed-panel .permits-feed-scroll {
+      flex: 1 1 80%;
+      min-height: 0;
       overflow-y: auto;
-      min-height: 120px;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      padding: 0.15rem 0.1rem 0.35rem;
     }
 
     .feed-footer {
@@ -724,106 +780,211 @@
       box-shadow: 0 0 8px rgba(200, 16, 46, 0.6);
     }
 
-    .ghost-postcard {
-      border: 2px dashed var(--border);
-      border-radius: var(--radius);
-      padding: 2.5rem 1rem;
-      text-align: center;
-      color: var(--muted);
-      font-size: 0.78rem;
-      background: repeating-linear-gradient(
-        -12deg,
-        transparent,
-        transparent 10px,
-        rgba(255, 255, 255, 0.02) 10px,
-        rgba(255, 255, 255, 0.02) 11px
-      );
+    /* Mail queue — 6×4 postcard */
+    #mail-panel .mail-queue-body {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.25rem;
     }
 
     .postcard-stack {
+      width: 100%;
       display: flex;
       flex-direction: column;
-      gap: 1.25rem;
-      perspective: 800px;
+      align-items: center;
+      gap: 1.5rem;
     }
-    .postcard-wrap {
-      position: relative;
-      transform: rotate(-1deg);
-      transition: transform 0.25s;
-    }
-    .postcard-wrap:nth-child(even) { transform: rotate(0.6deg); }
-    .postcard-wrap:hover { transform: rotate(0deg) translateY(-2px); }
 
-    .postcard {
+    .postcard-wrap {
+      width: 100%;
+      max-width: 320px;
+      display: flex;
+      justify-content: center;
+      padding: 0.35rem 0 0.5rem;
+    }
+    .postcard-wrap:nth-child(even) .postcard-shell--filled {
+      transform: rotate(-1.2deg);
+    }
+
+    .postcard-shell {
+      width: 100%;
+      aspect-ratio: 6 / 4;
+      border-radius: 5px;
+      box-sizing: border-box;
       position: relative;
-      background: #f7f7f5;
-      color: #1a1a1a;
-      border-radius: 6px;
-      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45), 0 2px 0 rgba(255, 255, 255, 0.4) inset;
-      padding: 1rem 1rem 1.1rem;
-      min-height: 168px;
       overflow: hidden;
     }
-    .postcard .stamp {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      width: 38px;
-      height: 48px;
-      border: 2px dashed #bbb;
-      border-radius: 3px;
-      background: linear-gradient(135deg, #e8e8e8, #f5f5f5);
-      box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.06);
+
+    #mail-empty.postcard-shell--ghost {
+      width: 100%;
+      max-width: 320px;
+      margin-left: auto;
+      margin-right: auto;
     }
-    .postcard .stamp::after {
-      content: "P";
-      position: absolute;
-      inset: 0;
+
+    .postcard-shell--ghost {
+      border: 2px dashed rgba(255, 255, 255, 0.22);
+      background: rgba(255, 255, 255, 0.02);
+      box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.35);
+      transform: rotate(-1deg);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-family: var(--font-mono);
-      font-weight: 800;
-      font-size: 0.85rem;
-      color: #c8102e;
-      opacity: 0.35;
-    }
-    .ribbon {
-      position: absolute;
-      top: 14px;
-      left: -32px;
-      transform: rotate(-42deg);
-      width: 120px;
       text-align: center;
-      font-size: 0.55rem;
+      padding: 1rem;
+      position: relative;
+    }
+    .postcard-shell--ghost::before {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 10%;
+      bottom: 22%;
+      border-left: 2px dotted rgba(255, 255, 255, 0.12);
+      transform: translateX(-50%);
+      pointer-events: none;
+    }
+    .postcard-shell--ghost::after {
+      content: "";
+      position: absolute;
+      left: 6%;
+      right: 6%;
+      bottom: 10%;
+      height: 11%;
+      max-height: 2.25rem;
+      border: 1px dashed rgba(200, 16, 46, 0.28);
+      border-radius: 2px;
+      pointer-events: none;
+    }
+    .postcard-shell--ghost .ghost-label {
+      position: relative;
+      z-index: 1;
+      font-size: 0.75rem;
+      color: var(--muted);
+      line-height: 1.45;
+      max-width: 12rem;
+    }
+
+    .postcard-shell--filled {
+      background: #ffffff;
+      color: #111111;
+      box-shadow:
+        0 14px 40px rgba(0, 0, 0, 0.55),
+        0 2px 6px rgba(0, 0, 0, 0.35);
+      transform: rotate(1.5deg);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .pc-status {
+      position: relative;
+      align-self: flex-start;
+      flex-shrink: 0;
+      margin-bottom: 0.3rem;
+      z-index: 2;
+      font-size: 0.5rem;
       font-weight: 800;
-      letter-spacing: 0.12em;
-      padding: 4px 0;
+      letter-spacing: 0.14em;
+      padding: 0.2rem 0.4rem;
+      border-radius: 4px;
       color: #fff;
       text-transform: uppercase;
     }
-    .ribbon.queued { background: linear-gradient(90deg, #0066cc, var(--cyan)); }
-    .ribbon.sent { background: linear-gradient(90deg, #008844, var(--success)); }
-    .ribbon.failed { background: linear-gradient(90deg, #881100, var(--accent)); }
+    .pc-status--queued { background: linear-gradient(90deg, #0055aa, var(--cyan)); }
+    .pc-status--sent { background: linear-gradient(90deg, #006633, var(--success)); }
+    .pc-status--failed { background: linear-gradient(90deg, #991100, var(--accent)); }
 
-    .pc-front {
-      font-size: 0.68rem;
+    .pc-main {
+      flex: 1;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+    }
+
+    .pc-col-left {
+      padding: 0.65rem 0.55rem 0.5rem 0.65rem;
+      border-right: 2px dotted #c8c8c8;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+    .pc-brand {
+      font-size: 0.58rem;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #c8102e;
+      margin-bottom: 0.35rem;
+    }
+    .pc-copy {
+      font-size: 13px;
       line-height: 1.45;
-      color: #333;
-      padding-right: 44px;
-      max-height: 4.2em;
-      overflow: hidden;
+      color: #1a1a1a;
+      white-space: pre-wrap;
+      overflow-y: auto;
+      flex: 1;
+      min-height: 0;
     }
-    .pc-divider {
-      border-top: 2px dotted #bbb;
-      margin: 0.55rem 0;
+
+    .pc-col-right {
+      position: relative;
+      padding: 0.5rem 0.45rem 0.45rem 0.5rem;
+      min-width: 0;
     }
-    .pc-addr {
-      font-family: var(--font-hand);
-      font-size: 1.15rem;
-      line-height: 1.25;
+    .pc-stamp {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      width: 52px;
+      height: 62px;
+      background: #c8102e;
+      border: 1px solid #8b0018;
+      border-radius: 2px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      font-size: 0.45rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      line-height: 1.15;
+      color: #fff;
+      padding: 0.2rem;
+      z-index: 2;
+    }
+    .pc-addr-mono {
+      position: absolute;
+      left: 0.45rem;
+      right: 0.45rem;
+      bottom: 0.4rem;
+      font-family: var(--font-mono);
+      font-size: 0.62rem;
+      line-height: 1.35;
       color: #222;
+      text-align: right;
+      word-break: break-word;
     }
+
+    .pc-strip {
+      flex-shrink: 0;
+      border-top: 1px solid #c8102e;
+      background: #fafafa;
+      padding: 0.22rem 0.35rem;
+      font-size: 0.45rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      text-align: center;
+      color: #555;
+    }
+
     .cost-footer {
       margin-top: auto;
       padding-top: 0.75rem;
@@ -943,53 +1104,68 @@
           <p class="panel-sub"><span class="live-dot"></span>Calgary Open Data · <span id="permits-load-msg">Initializing…</span></p>
         </div>
         <div class="panel-feed-inner">
-          <div id="filter-bar" class="filter-bar hidden" aria-label="Permit filters">
-            <p id="filter-counter" class="filter-counter">Showing <strong>0</strong> of <strong>0</strong> permits</p>
-            <div class="filter-field">
-              <label for="filter-work">Work type</label>
-              <select id="filter-work">
-                <option value="all">All</option>
-                <option value="new">New</option>
-                <option value="improvement">Improvement</option>
-                <option value="demolition">Demolition</option>
-                <option value="addition">Addition</option>
-              </select>
-            </div>
-            <div class="filter-field">
-              <label for="filter-class">Permit class</label>
-              <select id="filter-class">
-                <option value="all">All</option>
-                <option value="residential">Residential</option>
-                <option value="commercial">Commercial</option>
-                <option value="industrial">Industrial</option>
-                <option value="institutional">Institutional</option>
-              </select>
-            </div>
-            <div class="filter-field">
-              <label for="filter-community">Community</label>
-              <select id="filter-community"><option value="all">All</option></select>
-            </div>
-            <div class="filter-field filter-cost">
-              <label>Est. project cost (CAD)</label>
-              <div class="cost-labels">
-                <span id="cost-min-label">$0</span>
-                <span id="cost-max-label">$0</span>
+          <div id="feed-toolbar" class="feed-toolbar hidden">
+            <button
+              type="button"
+              id="filter-toggle"
+              class="btn-filter-toggle"
+              aria-expanded="false"
+              aria-controls="filter-drawer"
+            >
+              ⚙ Filters
+            </button>
+            <p id="filter-counter" class="filter-counter-inline">
+              Showing <strong>0</strong> of <strong>0</strong> permits
+            </p>
+          </div>
+          <div id="filter-drawer" class="filter-drawer" role="region" aria-label="Permit filters">
+            <div class="filter-drawer-inner">
+              <div class="filter-field">
+                <label for="filter-work">Work type</label>
+                <select id="filter-work">
+                  <option value="all">All</option>
+                  <option value="new">New</option>
+                  <option value="improvement">Improvement</option>
+                  <option value="demolition">Demolition</option>
+                  <option value="addition">Addition</option>
+                </select>
               </div>
-              <div class="range-row">
-                <input type="range" id="cost-min-slider" min="0" max="100" value="0" step="1000" />
-                <input type="range" id="cost-max-slider" min="0" max="100" value="100" step="1000" />
+              <div class="filter-field">
+                <label for="filter-class">Permit class</label>
+                <select id="filter-class">
+                  <option value="all">All</option>
+                  <option value="residential">Residential</option>
+                  <option value="commercial">Commercial</option>
+                  <option value="industrial">Industrial</option>
+                  <option value="institutional">Institutional</option>
+                </select>
               </div>
+              <div class="filter-field">
+                <label for="filter-community">Community</label>
+                <select id="filter-community"><option value="all">All</option></select>
+              </div>
+              <div class="filter-field filter-cost">
+                <label>Est. project cost (CAD)</label>
+                <div class="cost-labels">
+                  <span id="cost-min-label">$0</span>
+                  <span id="cost-max-label">$0</span>
+                </div>
+                <div class="range-row">
+                  <input type="range" id="cost-min-slider" min="0" max="100" value="0" step="1000" />
+                  <input type="range" id="cost-max-slider" min="0" max="100" value="100" step="1000" />
+                </div>
+              </div>
+              <div class="filter-field">
+                <label for="filter-sort">Sort by</label>
+                <select id="filter-sort">
+                  <option value="date">Date (newest)</option>
+                  <option value="cost_desc">Cost (high → low)</option>
+                  <option value="cost_asc">Cost (low → high)</option>
+                  <option value="contractor">Contractor name</option>
+                </select>
+              </div>
+              <button type="button" class="btn-reset" id="filter-reset">Reset</button>
             </div>
-            <div class="filter-field">
-              <label for="filter-sort">Sort by</label>
-              <select id="filter-sort">
-                <option value="date">Date (newest)</option>
-                <option value="cost_desc">Cost (high → low)</option>
-                <option value="cost_asc">Cost (low → high)</option>
-                <option value="contractor">Contractor name</option>
-              </select>
-            </div>
-            <button type="button" class="btn-reset" id="filter-reset">Reset</button>
           </div>
           <div class="permits-feed-scroll" id="permits-feed"></div>
         </div>
@@ -1034,9 +1210,9 @@
           <p class="panel-kicker">Postgrid mail queue</p>
           <p class="panel-sub"><span class="cp-dot"></span>via Canada Post</p>
         </div>
-        <div class="panel-body">
-          <div id="mail-empty" class="ghost-postcard">
-            No postcards in queue.<br />Launch pipeline to render mailpieces.
+        <div class="panel-body mail-queue-body" id="mail-panel-body">
+          <div id="mail-empty" class="postcard-shell postcard-shell--ghost" aria-hidden="false">
+            <span class="ghost-label">Postcards will appear here</span>
           </div>
           <div id="mail-stack" class="postcard-stack hidden"></div>
         </div>
@@ -1099,7 +1275,9 @@
       const steps = document.querySelectorAll('.p-step');
       const conns = document.querySelectorAll('.p-conn');
       const aiIdleMsg = document.getElementById('ai-idle-msg');
-      const filterBar = document.getElementById('filter-bar');
+      const feedToolbar = document.getElementById('feed-toolbar');
+      const filterToggle = document.getElementById('filter-toggle');
+      const filterDrawer = document.getElementById('filter-drawer');
       const filterCounter = document.getElementById('filter-counter');
       const filterWork = document.getElementById('filter-work');
       const filterClass = document.getElementById('filter-class');
@@ -1508,6 +1686,23 @@
           '</strong> permits';
       }
 
+      function countActiveFilters() {
+        let n = 0;
+        if (filterWork.value !== 'all') n++;
+        if (filterClass.value !== 'all') n++;
+        if (filterCommunity.value !== 'all') n++;
+        const lo = Number(costMinSlider.value);
+        const hi = Number(costMaxSlider.value);
+        if (lo !== costDataMin || hi !== costDataMax) n++;
+        if (filterSort.value !== 'date') n++;
+        return n;
+      }
+
+      function updateFilterToggleLabel() {
+        const c = countActiveFilters();
+        filterToggle.textContent = c ? '⚙ Filters (' + c + ')' : '⚙ Filters';
+      }
+
       function formatCostShort(n) {
         if (!Number.isFinite(n)) return '$0';
         if (n >= 1e6) return '$' + (n / 1e6).toFixed(1) + 'M';
@@ -1605,7 +1800,13 @@
         });
         filterReset.addEventListener('click', function () {
           resetFiltersToDefaults();
+          filterDrawer.classList.remove('is-open');
+          filterToggle.setAttribute('aria-expanded', 'false');
           applyFilters();
+        });
+        filterToggle.addEventListener('click', function () {
+          const isOpen = filterDrawer.classList.toggle('is-open');
+          filterToggle.setAttribute('aria-expanded', String(isOpen));
         });
       }
 
@@ -1618,11 +1819,14 @@
           closeDetail();
         }
         updateFilterCounter(items.length, allPermits.length);
+        updateFilterToggleLabel();
         renderPermitCards(items);
       }
 
       function showSkeleton() {
-        filterBar.classList.add('hidden');
+        feedToolbar.classList.add('hidden');
+        filterDrawer.classList.remove('is-open');
+        filterToggle.setAttribute('aria-expanded', 'false');
         permitsFeed.innerHTML = '';
         const stack = document.createElement('div');
         stack.className = 'skeleton-stack';
@@ -1696,7 +1900,9 @@
       function onFreshDataLoaded() {
         closeDetail();
         selected.clear();
-        filterBar.classList.remove('hidden');
+        feedToolbar.classList.remove('hidden');
+        filterDrawer.classList.remove('is-open');
+        filterToggle.setAttribute('aria-expanded', 'false');
         bindFilterListeners();
         populateCommunityOptions();
         initCostRangeFromData();
@@ -1705,6 +1911,7 @@
         filterCommunity.value = 'all';
         filterSort.value = 'date';
         applyFilters();
+        updateFilterToggleLabel();
       }
 
       async function loadPermits() {
@@ -1727,7 +1934,8 @@
             String(allPermits.length) + ' rows · last 14d · cap 25';
         } catch (e) {
           allPermits = [];
-          filterBar.classList.add('hidden');
+          feedToolbar.classList.add('hidden');
+          filterDrawer.classList.remove('is-open');
           permitsFeed.innerHTML =
             '<p style="padding:1rem;color:var(--accent);font-size:0.85rem">' +
             escapeHtml(e.message || String(e)) +
@@ -1761,26 +1969,33 @@
         const wrap = document.createElement('div');
         wrap.className = 'postcard-wrap';
         wrap.style.animationDelay = i * 80 + 'ms';
-        const copyShort = (row.copy || '').slice(0, 220) + ((row.copy || '').length > 220 ? '…' : '');
+        const fullCopy = row.copy || '';
         const addr = escapeHtml(row.address || '—');
         const rib = statusRibbon(row.postcardStatus || 'Failed');
-
-        wrap.innerHTML =
-          '<div class="postcard">' +
-          '<div class="ribbon ' +
+        const shell = document.createElement('div');
+        shell.className = 'postcard-shell postcard-shell--filled';
+        shell.innerHTML =
+          '<div class="pc-main">' +
+          '<div class="pc-col-left">' +
+          '<div class="pc-status pc-status--' +
           rib[0] +
           '">' +
           rib[1] +
           '</div>' +
-          '<div class="stamp"></div>' +
-          '<div class="pc-front">' +
-          escapeHtml(copyShort) +
+          '<div class="pc-brand">YYC ProBuild</div>' +
+          '<div class="pc-copy">' +
+          escapeHtml(fullCopy) +
           '</div>' +
-          '<div class="pc-divider"></div>' +
-          '<div class="pc-addr">' +
+          '</div>' +
+          '<div class="pc-col-right">' +
+          '<div class="pc-stamp">CANADA<br/>POST</div>' +
+          '<div class="pc-addr-mono">' +
           addr +
           '</div>' +
-          '</div>';
+          '</div>' +
+          '</div>' +
+          '<div class="pc-strip">Automated direct mail · Calgary permit mailer</div>';
+        wrap.appendChild(shell);
         return wrap;
       }
 
