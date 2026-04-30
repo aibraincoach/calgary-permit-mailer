@@ -1,4 +1,5 @@
 const axios = require('axios');
+const util = require('util');
 
 const DEFAULT_BASE =
   process.env.POSTGRID_API_BASE || 'https://api.postgrid.com/print-mail/v1';
@@ -8,6 +9,154 @@ const SENDER_BRAND_FIRST_NAME = 'AI Brain Coach';
 const SENDER_BRAND_LAST_NAME = '';
 
 const DISPLAY_POSTAL_FALLBACK = 'T2H 0A1';
+
+/**
+ * Log full PostGrid JSON for debugging PDF field location (may be large).
+ * @param {unknown} data Axios `response.data` body
+ */
+function logPostgridPostcardResponseBody(data) {
+  try {
+    console.log('[PostGrid] POST /postcards full response body:', JSON.stringify(data, null, 2));
+  } catch {
+    console.log('[PostGrid] POST /postcards response (non-JSON-serializable):', util.inspect(data, { depth: 12, colors: false }));
+  }
+}
+
+/**
+ * Collect string values that look like HTTP(S) URLs from a nested object.
+ * @param {unknown} obj
+ * @param {string} path
+ * @param {number} depth
+ * @param {Array<{ path: string, value: string }>} out
+ */
+function collectHttpsUrlStrings(obj, path, depth, out) {
+  if (depth > 10 || obj == null) return out;
+  if (typeof obj === 'string') {
+    const t = obj.trim();
+    if (/^https?:\/\//i.test(t)) out.push({ path: path || '(root)', value: t });
+    return out;
+  }
+  if (typeof obj !== 'object') return out;
+  if (Array.isArray(obj)) {
+    for (let i = 0; i < obj.length; i++) {
+      collectHttpsUrlStrings(obj[i], `${path}[${i}]`, depth + 1, out);
+    }
+    return out;
+  }
+  for (const k of Object.keys(obj)) {
+    const p = path ? `${path}.${k}` : k;
+    collectHttpsUrlStrings(obj[k], p, depth + 1, out);
+  }
+  return out;
+}
+
+function scorePdfUrlCandidate(path, value) {
+  const pl = path.toLowerCase();
+  const vl = value.toLowerCase();
+  let s = 0;
+  if (/\burl\b/.test(pl) && !/\bhtml\b/.test(pl)) s += 6;
+  if (/\bpdf\b/.test(pl)) s += 10;
+  if (/\bpreview\b/.test(pl)) s += 5;
+  if (/\bfile\b/.test(pl)) s += 2;
+  if (vl.includes('.pdf') || vl.includes('pdf')) s += 4;
+  if (vl.includes('amazonaws.com') || vl.includes('postgrid')) s += 5;
+  if (/\blogo\b|\bicon\b|\bavatar\b|\bphoto\b/.test(pl)) s -= 20;
+  return s;
+}
+
+/**
+ * Extract PDF preview URL and order id from PostGrid create-postcard JSON.
+ * Handles top-level, nested `postcard`, alternate key names, and scored URL fallbacks.
+ * @param {object | null | undefined} data
+ * @returns {{ pdfUrl: string, orderId: string }}
+ */
+function extractPostgridPostcardMeta(data) {
+  const empty = { pdfUrl: '', orderId: '' };
+  if (!data || typeof data !== 'object') return empty;
+
+  const tryUrl = (v) => (typeof v === 'string' && /^https?:\/\//i.test(v.trim()) ? v.trim() : '');
+
+  const directKeys = ['url', 'pdf_url', 'pdfUrl', 'pdfURL', 'previewUrl', 'preview_url', 'finalPdfUrl', 'pdfLink'];
+  for (const key of directKeys) {
+    const u = tryUrl(/** @type {any} */ (data)[key]);
+    if (u) return { pdfUrl: u, orderId: extractOrderIdFromPostgridBody(data) };
+  }
+
+  const nested = /** @type {any} */ (data).postcard;
+  if (nested && typeof nested === 'object') {
+    for (const key of directKeys) {
+      const u = tryUrl(nested[key]);
+      if (u) return { pdfUrl: u, orderId: extractOrderIdFromPostgridBody(data) };
+    }
+  }
+
+  const innerData = /** @type {any} */ (data).data;
+  if (innerData && typeof innerData === 'object') {
+    const inner = extractPostgridPostcardMeta(innerData);
+    if (inner.pdfUrl) return { pdfUrl: inner.pdfUrl, orderId: inner.orderId || extractOrderIdFromPostgridBody(data) };
+  }
+
+  const resultWrap = /** @type {any} */ (data).result;
+  if (resultWrap && typeof resultWrap === 'object') {
+    for (const key of directKeys) {
+      const u = tryUrl(resultWrap[key]);
+      if (u) return { pdfUrl: u, orderId: extractOrderIdFromPostgridBody(data) };
+    }
+  }
+
+  const postcardsArr = /** @type {any} */ (data).postcards;
+  if (Array.isArray(postcardsArr) && postcardsArr[0] && typeof postcardsArr[0] === 'object') {
+    const first = postcardsArr[0];
+    for (const key of directKeys) {
+      const u = tryUrl(first[key]);
+      if (u) return { pdfUrl: u, orderId: extractOrderIdFromPostgridBody(first) || extractOrderIdFromPostgridBody(data) };
+    }
+  }
+
+  const candidates = collectHttpsUrlStrings(data, '', 0, []);
+  if (candidates.length) {
+    candidates.sort(
+      (a, b) => scorePdfUrlCandidate(b.path, b.value) - scorePdfUrlCandidate(a.path, a.value),
+    );
+    const best = candidates[0];
+    if (best && scorePdfUrlCandidate(best.path, best.value) >= 0) {
+      return { pdfUrl: best.value, orderId: extractOrderIdFromPostgridBody(data) };
+    }
+  }
+
+  return { pdfUrl: '', orderId: extractOrderIdFromPostgridBody(data) };
+}
+
+/**
+ * @param {object} data
+ * @returns {string}
+ */
+function extractOrderIdFromPostgridBody(data) {
+  if (!data || typeof data !== 'object') return '';
+  const tryId = (v) => (typeof v === 'string' && v.trim() ? v.trim() : '');
+  let id = tryId(/** @type {any} */ (data).id);
+  if (id) return id;
+  id = tryId(/** @type {any} */ (data).order_id);
+  if (id) return id;
+  id = tryId(/** @type {any} */ (data).orderId);
+  if (id) return id;
+  const pc = /** @type {any} */ (data).postcard;
+  if (pc && typeof pc === 'object') {
+    id = tryId(pc.id);
+    if (id) return id;
+  }
+  const inner = /** @type {any} */ (data).data;
+  if (inner && typeof inner === 'object') {
+    id = extractOrderIdFromPostgridBody(inner);
+    if (id) return id;
+  }
+  const resultWrap = /** @type {any} */ (data).result;
+  if (resultWrap && typeof resultWrap === 'object') {
+    id = tryId(resultWrap.id);
+    if (id) return id;
+  }
+  return '';
+}
 
 function escapeHtml(s) {
   return String(s)
@@ -20,11 +169,27 @@ function escapeHtml(s) {
 function permitPostalCode(permit) {
   const p = permit && typeof permit === 'object' ? permit : {};
   const z =
+    (p.resolvedPostalOrZip && String(p.resolvedPostalOrZip).trim()) ||
     (p.postalcode && String(p.postalcode).trim()) ||
     (p.postalzip && String(p.postalzip).trim()) ||
     (p.zip && String(p.zip).trim()) ||
     '';
   return z;
+}
+
+/**
+ * Format stored postal for display (Canadian: A1A 1A1 when possible).
+ * @param {string} raw
+ * @returns {string}
+ */
+function formatPostalForDisplay(raw) {
+  if (!raw || typeof raw !== 'string') return '';
+  const t = raw.trim();
+  if (!t) return '';
+  const compact = t.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const m = compact.match(/^([ABCEGHJ-NPRSTVXY]\d[ABCEGHJ-NPRSTV-Z])(\d[ABCEGHJ-NPRSTV-Z]\d)$/);
+  if (m) return `${m[1]} ${m[2]}`;
+  return t.toUpperCase();
 }
 
 function contractorDisplayName(permit) {
@@ -131,10 +296,11 @@ function buildPostcardBackHtml(permit, copy) {
   const safeCopy = escapeHtml(copy || '').replace(/\r\n/g, '\n');
   const name = escapeHtml(contractorDisplayName(permit));
   const line1 = escapeHtml(addressLineOne(permit));
-  const postal = permitPostalCode(permit);
+  const postalRaw = permitPostalCode(permit);
+  const postal = formatPostalForDisplay(postalRaw);
   const cityLine = postal
-    ? `Calgary, Alberta ${escapeHtml(postal)}`
-    : `Calgary, Alberta ${DISPLAY_POSTAL_FALLBACK}`;
+    ? `Calgary, AB ${escapeHtml(postal)}`
+    : `Calgary, AB ${DISPLAY_POSTAL_FALLBACK}`;
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -236,9 +402,10 @@ function buildPostcardBackHtml(permit, copy) {
 }
 
 /**
- * Build PostGrid recipient `to` from fields on the permit only.
+ * Build PostGrid recipient `to` from fields on the permit.
+ * Uses `resolvedPostalOrZip` (e.g. from geocoder) or permit postal fields when present.
  * Returns null if there is no site address on the record (no fallbacks).
- * Always sets city Calgary, province AB, country CA; postal only if present on permit.
+ * Always sets city Calgary, province AB, country CA; postal only when known.
  *
  * @param {object} permit
  * @returns {{ firstName: string, lastName: string, addressLine1: string, city: string, provinceOrState: string, countryCode: string, postalOrZip?: string } | null}
@@ -253,7 +420,8 @@ function recipientFromPermit(permit) {
   const addressLine1 = addressLineOne(p);
   if (!addressLine1) return null;
 
-  const postalOrZip = permitPostalCode(p);
+  const postalRaw = permitPostalCode(p);
+  const postalOrZip = (formatPostalForDisplay(postalRaw) || String(postalRaw || '').trim()).trim();
 
   const out = {
     firstName,
@@ -300,13 +468,17 @@ async function sendPostcard(body) {
     throw new Error(`PostGrid error: ${msg}`);
   }
 
+  logPostgridPostcardResponseBody(data);
+
   return data;
 }
 
 module.exports = {
   sendPostcard,
+  extractPostgridPostcardMeta,
   DEFAULT_BASE,
   recipientFromPermit,
+  addressLineOne,
   SENDER_BRAND_FIRST_NAME,
   SENDER_BRAND_LAST_NAME,
   buildPostcardFrontHtml,

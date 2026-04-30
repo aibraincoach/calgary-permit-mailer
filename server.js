@@ -62,6 +62,7 @@ app.post('/run', async (req, res) => {
 
   try {
     const results = await runPipeline({ permits, send });
+    // Pass through full row objects (pdfUrl, orderId, etc.) for the UI modal.
     res.json(results);
   } catch (err) {
     const msg = err.message || String(err);

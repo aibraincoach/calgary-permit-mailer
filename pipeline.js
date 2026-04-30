@@ -1,12 +1,15 @@
 const { fetchPermits } = require('./fetchPermits');
 const { generateCopy } = require('./generateCopy');
+const { lookupCalgaryPostalCode } = require('./geocodePostal');
 const {
   sendPostcard,
   recipientFromPermit,
+  extractPostgridPostcardMeta,
   SENDER_BRAND_FIRST_NAME,
   SENDER_BRAND_LAST_NAME,
   buildPostcardFrontHtml,
   buildPostcardBackHtml,
+  addressLineOne,
 } = require('./sendPostcard');
 
 function senderFromEnv() {
@@ -27,48 +30,8 @@ function senderFromEnv() {
 const MAX_PIPELINE_PERMITS = 50;
 
 /**
- * PostGrid postcard create responses use top-level `url` (PDF preview); some clients use `pdf_url`.
- * @param {object | null | undefined} data
- * @returns {string}
- */
-function pdfUrlFromPostgridResponse(data) {
-  if (!data || typeof data !== 'object') return '';
-  const top =
-    (typeof data.url === 'string' && data.url.trim()) ||
-    (typeof data.pdf_url === 'string' && data.pdf_url.trim()) ||
-    '';
-  if (top) return top;
-  const pc = data.postcard;
-  if (pc && typeof pc === 'object') {
-    return (
-      (typeof pc.url === 'string' && pc.url.trim()) ||
-      (typeof pc.pdf_url === 'string' && pc.pdf_url.trim()) ||
-      ''
-    );
-  }
-  return '';
-}
-
-/**
- * Postcard order id (e.g. postcard_xxx) for support / dashboard.
- * @param {object | null | undefined} data
- * @returns {string}
- */
-function postgridOrderIdFromResponse(data) {
-  if (!data || typeof data !== 'object') return '';
-  if (typeof data.id === 'string' && data.id.trim()) return data.id.trim();
-  if (typeof data.order_id === 'string' && data.order_id.trim()) return data.order_id.trim();
-  if (typeof data.orderId === 'string' && data.orderId.trim()) return data.orderId.trim();
-  const pc = data.postcard;
-  if (pc && typeof pc === 'object' && typeof pc.id === 'string' && pc.id.trim()) {
-    return pc.id.trim();
-  }
-  return '';
-}
-
-/**
  * @param {{ limit?: number, days?: number, send: boolean, permits?: object[] }} opts
- * @returns {Promise<Array<{ permitnum: string, contractorname: string, address: string, copy: string, postcardStatus: string, workclassgroup?: string, pdfUrl?: string, postgridOrderId?: string }>>}
+ * @returns {Promise<Array<{ permitnum: string, contractorname: string, address: string, copy: string, postcardStatus: string, workclassgroup?: string, pdfUrl?: string, orderId?: string }>>}
  */
 async function runPipeline(opts) {
   const send = Boolean(opts.send);
@@ -85,7 +48,7 @@ async function runPipeline(opts) {
   const size = process.env.POSTGRID_POSTCARD_SIZE || '6x4';
   const mailingClass = process.env.POSTGRID_MAILING_CLASS || 'standard_class';
 
-  /** @type {Array<{ permitnum: string, contractorname: string, address: string, copy: string, postcardStatus: string, workclassgroup?: string, pdfUrl?: string, postgridOrderId?: string }>} */
+  /** @type {Array<{ permitnum: string, contractorname: string, address: string, copy: string, postcardStatus: string, workclassgroup?: string, pdfUrl?: string, orderId?: string }>} */
   const rows = [];
 
   for (const permit of permits) {
@@ -94,9 +57,7 @@ async function runPipeline(opts) {
     const address = permit.address || permit.originaladdress || '';
     const workclassgroup = permit.workclassgroup || '';
 
-    const mailTo = send ? recipientFromPermit(permit) : null;
-
-    if (send && !mailTo) {
+    if (send && !addressLineOne(permit)) {
       console.error('Skipped — no address', permitnum || '(unknown permit)');
       rows.push({
         permitnum,
@@ -134,8 +95,33 @@ async function runPipeline(opts) {
       continue;
     }
 
+    let permitForSend = permit;
+    try {
+      const geo = await lookupCalgaryPostalCode(addressLineOne(permit));
+      if (geo) {
+        permitForSend = { ...permit, resolvedPostalOrZip: geo };
+        console.log('[pipeline] Geocoded postal for', permitnum || '(unknown):', geo);
+      }
+    } catch (err) {
+      console.error('[pipeline] Geocoder error:', err.message || err);
+    }
+
+    const mailTo = recipientFromPermit(permitForSend);
+    if (!mailTo) {
+      console.error('Skipped — recipient build failed', permitnum || '(unknown permit)');
+      rows.push({
+        permitnum,
+        contractorname,
+        address,
+        copy,
+        workclassgroup,
+        postcardStatus: 'Failed',
+      });
+      continue;
+    }
+
     const frontHTML = buildPostcardFrontHtml(permit);
-    const backHTML = buildPostcardBackHtml(permit, copy);
+    const backHTML = buildPostcardBackHtml(permitForSend, copy);
     const payload = {
       to: mailTo,
       frontHTML,
@@ -148,10 +134,13 @@ async function runPipeline(opts) {
 
     try {
       const postgridRes = await sendPostcard(payload);
-      const pdfUrl = pdfUrlFromPostgridResponse(postgridRes);
-      const postgridOrderId = postgridOrderIdFromResponse(postgridRes);
-      if (pdfUrl) console.log('PostGrid postcard PDF:', pdfUrl);
-      if (postgridOrderId) console.log('PostGrid order ID:', postgridOrderId);
+      const { pdfUrl, orderId } = extractPostgridPostcardMeta(postgridRes);
+      console.log(
+        '[pipeline] PostGrid extracted pdfUrl:',
+        pdfUrl || '(none)',
+        'orderId:',
+        orderId || '(none)',
+      );
 
       const row = {
         permitnum,
@@ -162,7 +151,7 @@ async function runPipeline(opts) {
         postcardStatus: 'Postcard Sent',
       };
       if (pdfUrl) row.pdfUrl = pdfUrl;
-      if (postgridOrderId) row.postgridOrderId = postgridOrderId;
+      if (orderId) row.orderId = orderId;
       rows.push(row);
     } catch {
       rows.push({
