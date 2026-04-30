@@ -810,6 +810,31 @@
             var copy = truncatePostcardCopy(row.copy || '', 400);
             copyEl.textContent = copy || '(No copy)';
             copyEl.classList.remove('hidden');
+            var extras = rowEl.querySelector('.postgrid-extras');
+            if (extras) {
+              extras.innerHTML = '';
+              extras.classList.add('hidden');
+              var sentOk =
+                row.postcardStatus === 'Postcard Sent' || row.postcardStatus === 'sent';
+              if (sentOk && row.pdfUrl) {
+                extras.classList.remove('hidden');
+                var pdfBtn = document.createElement('button');
+                pdfBtn.type = 'button';
+                pdfBtn.className = 'btn btn-ghost postgrid-pdf-btn';
+                pdfBtn.textContent = 'View Postcard PDF →';
+                var pdfUrl = row.pdfUrl;
+                pdfBtn.addEventListener('click', function () {
+                  window.open(pdfUrl, '_blank', 'noopener,noreferrer');
+                });
+                extras.appendChild(pdfBtn);
+                if (row.postgridOrderId) {
+                  var oidEl = document.createElement('div');
+                  oidEl.className = 'postgrid-order';
+                  oidEl.textContent = 'PostGrid: ' + row.postgridOrderId;
+                  extras.appendChild(oidEl);
+                }
+              }
+            }
             var lab = modalStatusLabel(row);
             statusEl.className = 'status ' + lab.cls;
             statusEl.textContent = lab.text;
@@ -837,6 +862,7 @@
             escapeHtml((p.contractorname || '').trim() || 'Unknown contractor') +
             '</div>' +
             '<div class="copy-text hidden"></div>' +
+            '<div class="postgrid-extras hidden" aria-live="polite"></div>' +
             '<div class="meta">' +
             escapeHtml(p.permitnum || '') +
             '</div></div>' +
