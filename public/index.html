@@ -365,6 +365,11 @@
       border: 1px solid rgba(255, 45, 45, 0.4);
       box-shadow: 0 0 12px rgba(255, 45, 45, 0.12);
     }
+    .badge-wt.addition {
+      color: #ffb020;
+      border: 1px solid rgba(255, 176, 32, 0.4);
+      box-shadow: 0 0 12px rgba(255, 176, 32, 0.12);
+    }
     .badge-wt.other {
       color: var(--muted);
       border: 1px solid var(--border);
@@ -392,6 +397,117 @@
       font-size: 0.75rem;
       color: var(--muted);
       line-height: 1.35;
+    }
+
+    .panel-feed-inner {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
+      padding: 0.75rem;
+      gap: 0.65rem;
+    }
+    .filter-bar {
+      flex-shrink: 0;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      gap: 0.5rem 0.65rem;
+      padding: 0.65rem 0.75rem;
+      background: #0c0c0c;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+    .filter-bar.hidden { display: none !important; }
+    .filter-field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      min-width: 0;
+    }
+    .filter-field label {
+      font-size: 0.58rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .filter-field select {
+      font-family: var(--font-sans);
+      font-size: 0.72rem;
+      padding: 0.4rem 0.5rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #0a0a0a;
+      color: var(--text);
+      min-width: 7.5rem;
+      max-width: 11rem;
+      cursor: pointer;
+    }
+    .filter-field select:focus {
+      outline: none;
+      border-color: rgba(0, 212, 255, 0.45);
+      box-shadow: 0 0 0 1px rgba(0, 212, 255, 0.2);
+    }
+    .filter-cost {
+      flex: 1 1 180px;
+      min-width: 160px;
+    }
+    .filter-cost .cost-labels {
+      display: flex;
+      justify-content: space-between;
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--cyan);
+      margin-bottom: 0.2rem;
+    }
+    .filter-cost .range-row {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+    .filter-cost input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent);
+      height: 4px;
+      cursor: pointer;
+    }
+    .btn-reset {
+      font-family: var(--font-sans);
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 0.45rem 0.75rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      transition: color 0.2s, border-color 0.2s, box-shadow 0.2s;
+      align-self: flex-end;
+    }
+    .btn-reset:hover {
+      color: var(--accent);
+      border-color: rgba(255, 45, 45, 0.45);
+      box-shadow: 0 0 14px rgba(255, 45, 45, 0.12);
+    }
+    .filter-counter {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      color: var(--muted);
+      flex: 1 1 100%;
+      width: 100%;
+      padding-top: 0.15rem;
+    }
+    .filter-counter strong {
+      color: var(--cyan);
+      font-weight: 600;
+    }
+    .permits-feed-scroll {
+      flex: 1;
+      overflow-y: auto;
+      min-height: 120px;
     }
 
     .feed-footer {
@@ -826,7 +942,57 @@
           <p class="panel-kicker">Live permit feed</p>
           <p class="panel-sub"><span class="live-dot"></span>Calgary Open Data · <span id="permits-load-msg">Initializing…</span></p>
         </div>
-        <div class="panel-body" id="permits-feed"></div>
+        <div class="panel-feed-inner">
+          <div id="filter-bar" class="filter-bar hidden" aria-label="Permit filters">
+            <p id="filter-counter" class="filter-counter">Showing <strong>0</strong> of <strong>0</strong> permits</p>
+            <div class="filter-field">
+              <label for="filter-work">Work type</label>
+              <select id="filter-work">
+                <option value="all">All</option>
+                <option value="new">New</option>
+                <option value="improvement">Improvement</option>
+                <option value="demolition">Demolition</option>
+                <option value="addition">Addition</option>
+              </select>
+            </div>
+            <div class="filter-field">
+              <label for="filter-class">Permit class</label>
+              <select id="filter-class">
+                <option value="all">All</option>
+                <option value="residential">Residential</option>
+                <option value="commercial">Commercial</option>
+                <option value="industrial">Industrial</option>
+                <option value="institutional">Institutional</option>
+              </select>
+            </div>
+            <div class="filter-field">
+              <label for="filter-community">Community</label>
+              <select id="filter-community"><option value="all">All</option></select>
+            </div>
+            <div class="filter-field filter-cost">
+              <label>Est. project cost (CAD)</label>
+              <div class="cost-labels">
+                <span id="cost-min-label">$0</span>
+                <span id="cost-max-label">$0</span>
+              </div>
+              <div class="range-row">
+                <input type="range" id="cost-min-slider" min="0" max="100" value="0" step="1000" />
+                <input type="range" id="cost-max-slider" min="0" max="100" value="100" step="1000" />
+              </div>
+            </div>
+            <div class="filter-field">
+              <label for="filter-sort">Sort by</label>
+              <select id="filter-sort">
+                <option value="date">Date (newest)</option>
+                <option value="cost_desc">Cost (high → low)</option>
+                <option value="cost_asc">Cost (low → high)</option>
+                <option value="contractor">Contractor name</option>
+              </select>
+            </div>
+            <button type="button" class="btn-reset" id="filter-reset">Reset</button>
+          </div>
+          <div class="permits-feed-scroll" id="permits-feed"></div>
+        </div>
         <div class="feed-footer">
           <p class="sel-line" id="selected-count">0 targets selected</p>
           <label class="opt-send">
@@ -933,12 +1099,26 @@
       const steps = document.querySelectorAll('.p-step');
       const conns = document.querySelectorAll('.p-conn');
       const aiIdleMsg = document.getElementById('ai-idle-msg');
+      const filterBar = document.getElementById('filter-bar');
+      const filterCounter = document.getElementById('filter-counter');
+      const filterWork = document.getElementById('filter-work');
+      const filterClass = document.getElementById('filter-class');
+      const filterCommunity = document.getElementById('filter-community');
+      const costMinSlider = document.getElementById('cost-min-slider');
+      const costMaxSlider = document.getElementById('cost-max-slider');
+      const costMinLabel = document.getElementById('cost-min-label');
+      const costMaxLabel = document.getElementById('cost-max-label');
+      const filterSort = document.getElementById('filter-sort');
+      const filterReset = document.getElementById('filter-reset');
 
       let allPermits = [];
       const selected = new Set();
       let detailIdx = null;
       let tokenCount = 0;
       let postcardCount = 0;
+      let costDataMin = 0;
+      let costDataMax = 1;
+      let filterListenersBound = false;
 
       function setPipelineUi(phase) {
         const idle = phase === 'idle' || phase === null;
@@ -1020,6 +1200,7 @@
         const s = String(wt).toLowerCase();
         if (/\bdemo/i.test(s)) return 'demolition';
         if (/\bimprove|\bexisting|\brenov/i.test(s)) return 'improvement';
+        if (/\baddition/i.test(s)) return 'addition';
         if (/\bnew\b/i.test(s)) return 'new';
         return 'other';
       }
@@ -1188,7 +1369,260 @@
         updateRowClasses();
       }
 
+      function parseCost(p) {
+        const n = Number(p.estprojectcost);
+        return Number.isFinite(n) ? n : 0;
+      }
+
+      function workStrings(p) {
+        return [
+          p.workclassgroup,
+          p.workclass,
+          p.workclassmapped,
+          p.permittype,
+          p.permittypemapped,
+          p.description,
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+      }
+
+      function matchesWorkFilter(p, v) {
+        if (v === 'all') return true;
+        const s = workStrings(p);
+        if (v === 'new') return /\bnew\b/i.test(s) && !/\brenew/i.test(s);
+        if (v === 'improvement') {
+          return /\bimprove|\bexisting|\brenov/i.test(s) || /\brepair/i.test(s);
+        }
+        if (v === 'demolition') return /\bdemo/i.test(s);
+        if (v === 'addition') return /\baddition/i.test(s);
+        return true;
+      }
+
+      function permitClassBucket(p) {
+        const blob = [
+          p.permitclassmapped,
+          p.permitclassgroup,
+          p.permitclass,
+          p.permittype,
+          p.permittypemapped,
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+        if (
+          /institutional|school|hospital|church|religious|library|museum|municipal|civic|government|arena|daycare|education/i.test(
+            blob,
+          )
+        ) {
+          return 'institutional';
+        }
+        if (/industrial|manufactur|warehouse|factory|f\d+\s/i.test(blob)) {
+          return 'industrial';
+        }
+        if (
+          /commercial|multi.family|multi-family|multifamily|retail|office|hotel|mixed|shopping|restaurant|store/i.test(
+            blob,
+          )
+        ) {
+          return 'commercial';
+        }
+        if (/residential|single.family|duplex|house|dwell|suite|condo|townhouse|sfd|garage|deck|basement/i.test(blob)) {
+          return 'residential';
+        }
+        if (p.permitclassmapped && String(p.permitclassmapped).toLowerCase() === 'residential') {
+          return 'residential';
+        }
+        if (p.permitclassmapped && String(p.permitclassmapped).toLowerCase() === 'non-residential') {
+          if (/industrial/i.test(blob)) return 'industrial';
+          if (/institutional/i.test(blob)) return 'institutional';
+          return 'commercial';
+        }
+        return 'commercial';
+      }
+
+      function matchesClassFilter(p, v) {
+        if (v === 'all') return true;
+        return permitClassBucket(p) === v;
+      }
+
+      function matchesCommunityFilter(p, v) {
+        if (v === 'all') return true;
+        const c = (p.communityname || '').trim();
+        return c === v;
+      }
+
+      function matchesCostFilter(p) {
+        const c = parseCost(p);
+        let lo = Number(costMinSlider.value);
+        let hi = Number(costMaxSlider.value);
+        if (lo > hi) {
+          const t = lo;
+          lo = hi;
+          hi = t;
+        }
+        return c >= lo && c <= hi;
+      }
+
+      function parseDateMs(p) {
+        const raw = p.issueddate || p.applieddate || '';
+        const t = Date.parse(raw);
+        return Number.isFinite(t) ? t : 0;
+      }
+
+      function getFilteredSortedItems() {
+        const n = allPermits.length;
+        const w = filterWork.value;
+        const cl = filterClass.value;
+        const com = filterCommunity.value;
+        const items = [];
+        for (let idx = 0; idx < n; idx++) {
+          const p = allPermits[idx];
+          if (!matchesWorkFilter(p, w)) continue;
+          if (!matchesClassFilter(p, cl)) continue;
+          if (!matchesCommunityFilter(p, com)) continue;
+          if (!matchesCostFilter(p)) continue;
+          items.push({ idx, p });
+        }
+        const sort = filterSort.value;
+        items.sort(function (a, b) {
+          if (sort === 'cost_desc') return parseCost(b.p) - parseCost(a.p);
+          if (sort === 'cost_asc') return parseCost(a.p) - parseCost(b.p);
+          if (sort === 'contractor') {
+            const na = (a.p.contractorname || '').toLowerCase();
+            const nb = (b.p.contractorname || '').toLowerCase();
+            return na.localeCompare(nb, undefined, { sensitivity: 'base' });
+          }
+          return parseDateMs(b.p) - parseDateMs(a.p);
+        });
+        return items;
+      }
+
+      function updateFilterCounter(shown, total) {
+        filterCounter.innerHTML =
+          'Showing <strong>' +
+          shown +
+          '</strong> of <strong>' +
+          total +
+          '</strong> permits';
+      }
+
+      function formatCostShort(n) {
+        if (!Number.isFinite(n)) return '$0';
+        if (n >= 1e6) return '$' + (n / 1e6).toFixed(1) + 'M';
+        if (n >= 1000) return '$' + (n / 1000).toFixed(0) + 'k';
+        return '$' + Math.round(n);
+      }
+
+      function initCostRangeFromData() {
+        const costs = allPermits.map(parseCost);
+        let minC = costs.length ? Math.min.apply(null, costs) : 0;
+        let maxC = costs.length ? Math.max.apply(null, costs) : 1;
+        if (!Number.isFinite(minC)) minC = 0;
+        if (!Number.isFinite(maxC)) maxC = 1;
+        if (minC === maxC) {
+          maxC = minC + 1;
+        }
+        costDataMin = minC;
+        costDataMax = maxC;
+        const step = Math.max(1, Math.round((maxC - minC) / 200) || 1);
+        costMinSlider.min = String(minC);
+        costMinSlider.max = String(maxC);
+        costMinSlider.step = String(step);
+        costMaxSlider.min = String(minC);
+        costMaxSlider.max = String(maxC);
+        costMaxSlider.step = String(step);
+        costMinSlider.value = String(minC);
+        costMaxSlider.value = String(maxC);
+        syncCostSliderLabels();
+      }
+
+      function syncCostSliderLabels() {
+        costMinLabel.textContent = formatCostShort(Number(costMinSlider.value));
+        costMaxLabel.textContent = formatCostShort(Number(costMaxSlider.value));
+      }
+
+      function clampCostSliders() {
+        let lo = Number(costMinSlider.value);
+        let hi = Number(costMaxSlider.value);
+        costMinSlider.value = String(Math.min(lo, hi));
+        costMaxSlider.value = String(Math.max(lo, hi));
+        syncCostSliderLabels();
+      }
+
+      function populateCommunityOptions() {
+        const set = new Set();
+        allPermits.forEach(function (p) {
+          const c = (p.communityname || '').trim();
+          if (c) set.add(c);
+        });
+        const list = Array.from(set).sort(function (a, b) {
+          return a.localeCompare(b, undefined, { sensitivity: 'base' });
+        });
+        const cur = filterCommunity.value;
+        filterCommunity.innerHTML = '<option value="all">All</option>';
+        list.forEach(function (name) {
+          const opt = document.createElement('option');
+          opt.value = name;
+          opt.textContent = name;
+          filterCommunity.appendChild(opt);
+        });
+        if (cur !== 'all' && list.indexOf(cur) >= 0) {
+          filterCommunity.value = cur;
+        } else {
+          filterCommunity.value = 'all';
+        }
+      }
+
+      function resetFiltersToDefaults() {
+        filterWork.value = 'all';
+        filterClass.value = 'all';
+        filterCommunity.value = 'all';
+        filterSort.value = 'date';
+        if (allPermits.length) {
+          initCostRangeFromData();
+        }
+      }
+
+      function bindFilterListeners() {
+        if (filterListenersBound) return;
+        filterListenersBound = true;
+        function onFilterChange() {
+          applyFilters();
+        }
+        filterWork.addEventListener('change', onFilterChange);
+        filterClass.addEventListener('change', onFilterChange);
+        filterCommunity.addEventListener('change', onFilterChange);
+        filterSort.addEventListener('change', onFilterChange);
+        costMinSlider.addEventListener('input', function () {
+          clampCostSliders();
+          onFilterChange();
+        });
+        costMaxSlider.addEventListener('input', function () {
+          clampCostSliders();
+          onFilterChange();
+        });
+        filterReset.addEventListener('click', function () {
+          resetFiltersToDefaults();
+          applyFilters();
+        });
+      }
+
+      function applyFilters() {
+        if (!allPermits.length) return;
+        const items = getFilteredSortedItems();
+        if (detailIdx !== null && !items.some(function (it) {
+          return it.idx === detailIdx;
+        })) {
+          closeDetail();
+        }
+        updateFilterCounter(items.length, allPermits.length);
+        renderPermitCards(items);
+      }
+
       function showSkeleton() {
+        filterBar.classList.add('hidden');
         permitsFeed.innerHTML = '';
         const stack = document.createElement('div');
         stack.className = 'skeleton-stack';
@@ -1201,17 +1635,17 @@
         permitsFeed.appendChild(stack);
       }
 
-      function renderPermitFeed(permits) {
-        closeDetail();
+      function renderPermitCards(items) {
         permitsFeed.innerHTML = '';
-        selected.clear();
-        permits.forEach(function (p, idx) {
+        items.forEach(function (item, displayIndex) {
+          const idx = item.idx;
+          const p = item.p;
           const wt = workType(p);
           const bClass = workBadgeClass(wt);
           const card = document.createElement('article');
           card.className = 'feed-card';
           card.setAttribute('data-idx', String(idx));
-          card.style.animationDelay = idx * 50 + 'ms';
+          card.style.animationDelay = Math.min(displayIndex, 20) * 50 + 'ms';
 
           const permitnum = escapeHtml(p.permitnum || '—');
           const contractor = escapeHtml(p.contractorname || '—');
@@ -1259,6 +1693,20 @@
         updateRowClasses();
       }
 
+      function onFreshDataLoaded() {
+        closeDetail();
+        selected.clear();
+        filterBar.classList.remove('hidden');
+        bindFilterListeners();
+        populateCommunityOptions();
+        initCostRangeFromData();
+        filterWork.value = 'all';
+        filterClass.value = 'all';
+        filterCommunity.value = 'all';
+        filterSort.value = 'date';
+        applyFilters();
+      }
+
       async function loadPermits() {
         permitsLoadMsg.textContent = 'pulling stream…';
         showSkeleton();
@@ -1274,11 +1722,12 @@
           }
           if (!Array.isArray(data)) throw new Error('Invalid feed payload');
           allPermits = data;
-          renderPermitFeed(allPermits);
+          onFreshDataLoaded();
           permitsLoadMsg.textContent =
             String(allPermits.length) + ' rows · last 14d · cap 25';
         } catch (e) {
           allPermits = [];
+          filterBar.classList.add('hidden');
           permitsFeed.innerHTML =
             '<p style="padding:1rem;color:var(--accent);font-size:0.85rem">' +
             escapeHtml(e.message || String(e)) +
