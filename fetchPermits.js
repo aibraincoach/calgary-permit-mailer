@@ -26,7 +26,7 @@ const DEFAULT_DATASET =
  *
  * @param {object} [opts]
  * @param {string} [opts.baseUrl] Full resource URL (without query)
- * @param {number} [opts.limit=100] $limit
+ * @param {number} [opts.limit=50] $limit
  * @param {number} [opts.daysBack] If set, adds $where issueddate >= ...
  * @param {string} [opts.where] Raw SoQL $where (overrides daysBack)
  * @param {string} [opts.order] SoQL $order, default issueddate DESC
@@ -34,7 +34,7 @@ const DEFAULT_DATASET =
  */
 async function fetchPermits(opts = {}) {
   const baseUrl = opts.baseUrl || DEFAULT_DATASET;
-  const limit = opts.limit ?? 100;
+  const limit = opts.limit ?? 50;
   const order = opts.order || 'issueddate DESC';
 
   const params = new URLSearchParams();
