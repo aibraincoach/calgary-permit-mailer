@@ -27,8 +27,48 @@ function senderFromEnv() {
 const MAX_PIPELINE_PERMITS = 50;
 
 /**
+ * PostGrid postcard create responses use top-level `url` (PDF preview); some clients use `pdf_url`.
+ * @param {object | null | undefined} data
+ * @returns {string}
+ */
+function pdfUrlFromPostgridResponse(data) {
+  if (!data || typeof data !== 'object') return '';
+  const top =
+    (typeof data.url === 'string' && data.url.trim()) ||
+    (typeof data.pdf_url === 'string' && data.pdf_url.trim()) ||
+    '';
+  if (top) return top;
+  const pc = data.postcard;
+  if (pc && typeof pc === 'object') {
+    return (
+      (typeof pc.url === 'string' && pc.url.trim()) ||
+      (typeof pc.pdf_url === 'string' && pc.pdf_url.trim()) ||
+      ''
+    );
+  }
+  return '';
+}
+
+/**
+ * Postcard order id (e.g. postcard_xxx) for support / dashboard.
+ * @param {object | null | undefined} data
+ * @returns {string}
+ */
+function postgridOrderIdFromResponse(data) {
+  if (!data || typeof data !== 'object') return '';
+  if (typeof data.id === 'string' && data.id.trim()) return data.id.trim();
+  if (typeof data.order_id === 'string' && data.order_id.trim()) return data.order_id.trim();
+  if (typeof data.orderId === 'string' && data.orderId.trim()) return data.orderId.trim();
+  const pc = data.postcard;
+  if (pc && typeof pc === 'object' && typeof pc.id === 'string' && pc.id.trim()) {
+    return pc.id.trim();
+  }
+  return '';
+}
+
+/**
  * @param {{ limit?: number, days?: number, send: boolean, permits?: object[] }} opts
- * @returns {Promise<Array<{ permitnum: string, contractorname: string, address: string, copy: string, postcardStatus: string, workclassgroup?: string }>>}
+ * @returns {Promise<Array<{ permitnum: string, contractorname: string, address: string, copy: string, postcardStatus: string, workclassgroup?: string, pdfUrl?: string, postgridOrderId?: string }>>}
  */
 async function runPipeline(opts) {
   const send = Boolean(opts.send);
@@ -45,7 +85,7 @@ async function runPipeline(opts) {
   const size = process.env.POSTGRID_POSTCARD_SIZE || '6x4';
   const mailingClass = process.env.POSTGRID_MAILING_CLASS || 'standard_class';
 
-  /** @type {Array<{ permitnum: string, contractorname: string, address: string, copy: string, postcardStatus: string }>} */
+  /** @type {Array<{ permitnum: string, contractorname: string, address: string, copy: string, postcardStatus: string, workclassgroup?: string, pdfUrl?: string, postgridOrderId?: string }>} */
   const rows = [];
 
   for (const permit of permits) {
@@ -107,15 +147,23 @@ async function runPipeline(opts) {
     if (from) payload.from = from;
 
     try {
-      await sendPostcard(payload);
-      rows.push({
+      const postgridRes = await sendPostcard(payload);
+      const pdfUrl = pdfUrlFromPostgridResponse(postgridRes);
+      const postgridOrderId = postgridOrderIdFromResponse(postgridRes);
+      if (pdfUrl) console.log('PostGrid postcard PDF:', pdfUrl);
+      if (postgridOrderId) console.log('PostGrid order ID:', postgridOrderId);
+
+      const row = {
         permitnum,
         contractorname,
         address,
         copy,
         workclassgroup,
         postcardStatus: 'Postcard Sent',
-      });
+      };
+      if (pdfUrl) row.pdfUrl = pdfUrl;
+      if (postgridOrderId) row.postgridOrderId = postgridOrderId;
+      rows.push(row);
     } catch {
       rows.push({
         permitnum,
