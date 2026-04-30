@@ -2,27 +2,47 @@ require('dotenv').config();
 
 const express = require('express');
 const path = require('path');
+const { fetchPermits } = require('./fetchPermits');
 const { runPipeline, recipientFromEnv } = require('./pipeline');
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 
-app.use(express.json({ limit: '256kb' }));
+const PERMITS_DEFAULT_LIMIT = 25;
+const PERMITS_DEFAULT_DAYS = 14;
 
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.json({ limit: '2mb' }));
+
+app.get('/permits', async (_req, res) => {
+  try {
+    const permits = await fetchPermits({
+      limit: PERMITS_DEFAULT_LIMIT,
+      daysBack: PERMITS_DEFAULT_DAYS,
+    });
+    res.json(permits);
+  } catch (err) {
+    console.error('GET /permits error:', err);
+    res.status(500).json({
+      error: 'Failed to fetch permits from Calgary Open Data',
+      detail: err.message || String(err),
+    });
+  }
+});
 
 app.post('/run', async (req, res) => {
   const body = req.body && typeof req.body === 'object' ? req.body : {};
-  const limit = Number(body.limit);
-  const days = Number(body.days);
   const send = Boolean(body.send);
+  const permits = body.permits;
 
-  if (!Number.isFinite(limit) || limit < 1 || limit > 100) {
-    res.status(400).json({ error: 'limit must be a number between 1 and 100' });
+  if (!Array.isArray(permits) || permits.length === 0) {
+    res.status(400).json({
+      error: 'Request body must include a non-empty "permits" array of permit objects.',
+    });
     return;
   }
-  if (!Number.isFinite(days) || days < 1 || days > 30) {
-    res.status(400).json({ error: 'days must be a number between 1 and 30' });
+
+  if (!permits.every((p) => p && typeof p === 'object')) {
+    res.status(400).json({ error: 'Each item in "permits" must be an object.' });
     return;
   }
 
@@ -35,7 +55,7 @@ app.post('/run', async (req, res) => {
   }
 
   try {
-    const results = await runPipeline({ limit, days, send });
+    const results = await runPipeline({ permits, send });
     res.json(results);
   } catch (err) {
     const msg = err.message || String(err);
@@ -47,6 +67,8 @@ app.post('/run', async (req, res) => {
     res.status(500).json({ error: 'Pipeline failed', detail: msg });
   }
 });
+
+app.use(express.static(path.join(__dirname, 'public')));
 
 app.listen(PORT, () => {
   console.error(`Calgary Permit Mailer http://localhost:${PORT}`);

@@ -19,15 +19,18 @@
   </script>
 </head>
 <body class="min-h-screen bg-surface text-slate-200 antialiased">
-  <div class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-    <header class="mb-10 border-b border-surface-border pb-8">
+  <div class="mx-auto max-w-[1400px] px-4 py-6 sm:px-6 lg:px-8">
+    <header class="mb-6 border-b border-surface-border pb-6">
       <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 class="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
             Calgary Permit Mailer
           </h1>
-          <p class="mt-2 text-sm text-slate-400 sm:text-base">
+          <p class="mt-1 text-sm text-slate-400 sm:text-base">
             Automated direct mail for Calgary contractors
+          </p>
+          <p class="mt-2 text-xs text-slate-500">
+            Showing last 14 days (up to 25 permits) from Calgary Open Data — select rows, then run the pipeline.
           </p>
         </div>
         <div
@@ -44,82 +47,88 @@
       </div>
     </header>
 
-    <section
-      class="mb-10 rounded-xl border border-surface-border bg-surface-card p-6 shadow-xl"
-    >
-      <h2 class="mb-6 text-lg font-medium text-white">Controls</h2>
-      <div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-        <div class="lg:col-span-2">
-          <label for="days" class="mb-2 block text-sm font-medium text-slate-300">
-            Days back: <span id="days-value" class="tabular-nums text-accent">14</span>
-          </label>
-          <input
-            type="range"
-            id="days"
-            min="1"
-            max="30"
-            value="14"
-            class="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-700 accent-sky-400"
-          />
+    <div class="grid gap-6 lg:grid-cols-2 lg:items-start">
+      <!-- Left: permits -->
+      <section class="flex min-h-0 flex-col rounded-xl border border-surface-border bg-surface-card shadow-xl">
+        <div class="border-b border-surface-border px-4 py-3">
+          <h2 class="text-lg font-medium text-white">Permits</h2>
+          <p id="permits-load-msg" class="mt-1 text-sm text-slate-500">Loading…</p>
         </div>
-        <div>
-          <label for="limit" class="mb-2 block text-sm font-medium text-slate-300">Limit</label>
-          <input
-            type="number"
-            id="limit"
-            min="1"
-            max="100"
-            value="5"
-            class="w-full rounded-lg border border-surface-border bg-surface px-3 py-2 text-white outline-none ring-accent focus:ring-2"
-          />
+        <div class="min-h-[280px] max-h-[min(60vh,560px)] overflow-auto">
+          <table class="w-full min-w-[640px] border-collapse text-left text-sm">
+            <thead class="sticky top-0 z-10 bg-[#1a2332] shadow-sm">
+              <tr class="text-xs uppercase tracking-wide text-slate-400">
+                <th class="w-10 px-3 py-3"></th>
+                <th class="px-3 py-3">Permit #</th>
+                <th class="px-3 py-3">Contractor</th>
+                <th class="px-3 py-3">Address</th>
+                <th class="px-3 py-3">Work type</th>
+                <th class="px-3 py-3 text-right">Est. cost</th>
+                <th class="px-3 py-3">Applied</th>
+              </tr>
+            </thead>
+            <tbody id="permits-tbody"></tbody>
+          </table>
         </div>
-        <div class="flex flex-col justify-end">
-          <label class="mb-2 flex cursor-pointer items-center gap-3 text-sm text-slate-300">
+        <div class="border-t border-surface-border p-4">
+          <p id="selected-count" class="mb-3 text-sm font-medium text-slate-300">
+            0 permits selected
+          </p>
+          <label class="mb-3 flex cursor-pointer items-center gap-3 text-sm text-slate-300">
             <input
               type="checkbox"
               id="send"
               class="h-4 w-4 rounded border-surface-border bg-surface text-accent focus:ring-accent"
             />
-            Send postcards
+            Send postcards (PostGrid + <code class="text-xs text-slate-500">POSTGRID_TO_*</code> in .env)
           </label>
-          <p class="mt-1 text-xs text-slate-500">Uses PostGrid test keys &amp; TO address from .env</p>
+          <button
+            type="button"
+            id="run-btn"
+            class="w-full rounded-lg bg-sky-500 px-6 py-3 text-base font-semibold text-slate-900 shadow-lg transition hover:bg-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2 focus:ring-offset-surface-card disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Run Pipeline
+          </button>
+          <p id="results-error" class="mt-3 hidden text-sm text-red-400"></p>
         </div>
-      </div>
-      <button
-        type="button"
-        id="run-btn"
-        class="mt-8 w-full rounded-lg bg-sky-500 px-6 py-3.5 text-base font-semibold text-slate-900 shadow-lg transition hover:bg-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2 focus:ring-offset-surface-card disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        Run Pipeline
-      </button>
-    </section>
+      </section>
 
-    <section>
-      <h2 class="mb-4 text-lg font-medium text-white">Results</h2>
-      <div id="results-empty" class="rounded-xl border border-dashed border-surface-border bg-surface-card/50 p-12 text-center text-slate-500">
-        Run the pipeline to see permits and generated copy here.
-      </div>
-      <div id="results-list" class="hidden space-y-4"></div>
-      <p id="results-error" class="mt-4 hidden text-sm text-red-400"></p>
-    </section>
+      <!-- Right: results -->
+      <section class="flex min-h-0 flex-col rounded-xl border border-surface-border bg-surface-card shadow-xl">
+        <div class="border-b border-surface-border px-4 py-3">
+          <h2 class="text-lg font-medium text-white">Pipeline results</h2>
+          <p class="mt-1 text-sm text-slate-500">Generated copy and mail status for the selected permits.</p>
+        </div>
+        <div class="min-h-[280px] max-h-[min(70vh,640px)] overflow-y-auto p-4">
+          <div
+            id="results-empty"
+            class="rounded-lg border border-dashed border-surface-border bg-surface/40 p-10 text-center text-slate-500"
+          >
+            Select one or more permits and click Run Pipeline to see results here.
+          </div>
+          <div id="results-list" class="hidden space-y-4"></div>
+        </div>
+      </section>
+    </div>
   </div>
 
   <script>
     (function () {
-      const daysInput = document.getElementById('days');
-      const daysValue = document.getElementById('days-value');
-      const limitInput = document.getElementById('limit');
       const sendInput = document.getElementById('send');
       const runBtn = document.getElementById('run-btn');
       const indicatorDot = document.getElementById('indicator-dot');
       const indicatorLabel = document.getElementById('indicator-label');
+      const permitsTbody = document.getElementById('permits-tbody');
+      const permitsLoadMsg = document.getElementById('permits-load-msg');
+      const selectedCountEl = document.getElementById('selected-count');
       const resultsEmpty = document.getElementById('results-empty');
       const resultsList = document.getElementById('results-list');
       const resultsError = document.getElementById('results-error');
 
-      daysInput.addEventListener('input', function () {
-        daysValue.textContent = daysInput.value;
-      });
+      /** @type {object[]} */
+      let allPermits = [];
+      /** @type {Set<number>} */
+      const selected = new Set();
 
       function setStatus(state) {
         indicatorLabel.textContent =
@@ -134,14 +143,27 @@
         }
       }
 
-      function badgeClass(status) {
-        if (status === 'Postcard Sent') {
-          return 'bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/40';
-        }
-        if (status === 'Copy Generated') {
-          return 'bg-sky-500/15 text-sky-300 ring-1 ring-sky-500/40';
-        }
-        return 'bg-red-500/15 text-red-300 ring-1 ring-red-500/40';
+      function updateSelectedUi() {
+        const n = selected.size;
+        selectedCountEl.textContent =
+          n === 1 ? '1 permit selected' : n + ' permits selected';
+        runBtn.disabled = n === 0;
+        permitsTbody.querySelectorAll('tr[data-idx]').forEach(function (tr) {
+          const idx = parseInt(tr.getAttribute('data-idx'), 10);
+          const on = selected.has(idx);
+          tr.classList.toggle('bg-sky-500/10', on);
+          tr.classList.toggle('ring-1', on);
+          tr.classList.toggle('ring-inset', on);
+          tr.classList.toggle('ring-sky-500/30', on);
+          const cb = tr.querySelector('input[type="checkbox"]');
+          if (cb) cb.checked = on;
+        });
+      }
+
+      function toggleIndex(idx) {
+        if (selected.has(idx)) selected.delete(idx);
+        else selected.add(idx);
+        updateSelectedUi();
       }
 
       function escapeHtml(s) {
@@ -150,6 +172,139 @@
           .replace(/</g, '&lt;')
           .replace(/>/g, '&gt;')
           .replace(/"/g, '&quot;');
+      }
+
+      function formatMoney(v) {
+        if (v == null || v === '') return '—';
+        const n = Number(v);
+        if (!Number.isFinite(n)) return escapeHtml(String(v));
+        return new Intl.NumberFormat('en-CA', {
+          style: 'currency',
+          currency: 'CAD',
+          maximumFractionDigits: 0,
+        }).format(n);
+      }
+
+      function formatDate(iso) {
+        if (!iso) return '—';
+        return escapeHtml(String(iso).slice(0, 10));
+      }
+
+      function workType(p) {
+        return (
+          p.workclassgroup ||
+          p.workclass ||
+          p.permittypemapped ||
+          p.permittype ||
+          ''
+        );
+      }
+
+      function renderPermitTable(permits) {
+        permitsTbody.innerHTML = '';
+        selected.clear();
+        permits.forEach(function (p, idx) {
+          const tr = document.createElement('tr');
+          tr.className = 'border-b border-surface-border text-slate-300 transition hover:bg-white/5';
+          tr.setAttribute('data-idx', String(idx));
+
+          const permitnum = escapeHtml(p.permitnum || '—');
+          const contractor = escapeHtml(p.contractorname || '—');
+          const addr = escapeHtml(p.originaladdress || p.address || '—');
+          const wt = escapeHtml(workType(p) || '—');
+          const cost = formatMoney(p.estprojectcost);
+          const applied = formatDate(p.applieddate);
+
+          tr.innerHTML =
+            '<td class="px-3 py-2 align-middle">' +
+            '<input type="checkbox" class="perm-cb h-4 w-4 rounded border-surface-border bg-surface text-accent focus:ring-accent" aria-label="Select permit ' +
+            permitnum +
+            '" />' +
+            '</td>' +
+            '<td class="px-3 py-2 font-mono text-xs text-accent">' +
+            permitnum +
+            '</td>' +
+            '<td class="max-w-[140px] truncate px-3 py-2" title="' +
+            contractor +
+            '">' +
+            contractor +
+            '</td>' +
+            '<td class="max-w-[180px] truncate px-3 py-2" title="' +
+            addr +
+            '">' +
+            addr +
+            '</td>' +
+            '<td class="max-w-[100px] truncate px-3 py-2 text-xs" title="' +
+            wt +
+            '">' +
+            wt +
+            '</td>' +
+            '<td class="whitespace-nowrap px-3 py-2 text-right text-xs">' +
+            cost +
+            '</td>' +
+            '<td class="whitespace-nowrap px-3 py-2 text-xs text-slate-400">' +
+            applied +
+            '</td>';
+
+          const cb = tr.querySelector('.perm-cb');
+          cb.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            toggleIndex(idx);
+          });
+          tr.addEventListener('click', function (e) {
+            if (e.target.closest('.perm-cb')) return;
+            toggleIndex(idx);
+          });
+
+          permitsTbody.appendChild(tr);
+        });
+        updateSelectedUi();
+      }
+
+      async function loadPermits() {
+        permitsLoadMsg.textContent = 'Loading permits from Calgary Open Data…';
+        permitsLoadMsg.classList.remove('text-red-400');
+        permitsLoadMsg.classList.add('text-slate-500');
+        try {
+          const res = await fetch('/permits');
+          const data = await res.json().catch(function () {
+            return null;
+          });
+          if (!res.ok) {
+            throw new Error(
+              (data && (data.error || data.detail)) ||
+                'Failed to load permits (' + res.status + ')',
+            );
+          }
+          if (!Array.isArray(data)) {
+            throw new Error('Invalid permits response');
+          }
+          allPermits = data;
+          renderPermitTable(allPermits);
+          permitsLoadMsg.textContent =
+            allPermits.length +
+            ' permit' +
+            (allPermits.length === 1 ? '' : 's') +
+            ' loaded (last 14 days, max 25).';
+        } catch (e) {
+          allPermits = [];
+          permitsTbody.innerHTML = '';
+          permitsLoadMsg.textContent = e.message || String(e);
+          permitsLoadMsg.classList.remove('text-slate-500');
+          permitsLoadMsg.classList.add('text-red-400');
+          updateSelectedUi();
+        }
+      }
+
+      function badgeClass(status) {
+        if (status === 'Postcard Sent') {
+          return 'bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/40';
+        }
+        if (status === 'Copy Generated') {
+          return 'bg-sky-500/15 text-sky-300 ring-1 ring-sky-500/40';
+        }
+        return 'bg-red-500/15 text-red-300 ring-1 ring-red-500/40';
       }
 
       function renderCard(row) {
@@ -164,11 +319,11 @@
 
         const el = document.createElement('article');
         el.className =
-          'rounded-xl border border-surface-border bg-surface-card p-6 shadow-lg';
+          'rounded-lg border border-surface-border bg-surface/60 p-5 shadow-md';
         el.innerHTML =
-          '<div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">' +
+          '<div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">' +
           '<div class="min-w-0 flex-1">' +
-          '<h3 class="text-xl font-semibold text-white sm:text-2xl">' +
+          '<h3 class="text-lg font-semibold text-white">' +
           contractor +
           '</h3>' +
           '<p class="mt-1 text-sm text-slate-400">' +
@@ -184,7 +339,7 @@
           escapeHtml(status) +
           '</span>' +
           '</div>' +
-          '<div class="mt-4 rounded-lg border border-surface-border bg-surface/80 p-4">' +
+          '<div class="mt-4 rounded-md border border-surface-border bg-surface-card p-3">' +
           '<p class="whitespace-pre-wrap text-sm leading-relaxed text-slate-300">' +
           copy +
           '</p>' +
@@ -195,22 +350,28 @@
       runBtn.addEventListener('click', async function () {
         resultsError.classList.add('hidden');
         resultsError.textContent = '';
-        const limit = Math.min(100, Math.max(1, parseInt(limitInput.value, 10) || 5));
-        const days = Math.min(30, Math.max(1, parseInt(daysInput.value, 10) || 14));
-        const send = sendInput.checked;
 
+        const indices = Array.from(selected).sort(function (a, b) {
+          return a - b;
+        });
+        const toRun = indices.map(function (i) {
+          return allPermits[i];
+        });
+        if (!toRun.length) return;
+
+        const send = sendInput.checked;
         runBtn.disabled = true;
         setStatus('running');
         resultsEmpty.classList.add('hidden');
         resultsList.classList.remove('hidden');
         resultsList.innerHTML =
-          '<p class="text-center text-slate-500 py-8">Running pipeline…</p>';
+          '<p class="text-center text-slate-500 py-6">Running pipeline…</p>';
 
         try {
           const res = await fetch('/run', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ limit, days, send }),
+            body: JSON.stringify({ permits: toRun, send }),
           });
           const data = await res.json().catch(function () {
             return null;
@@ -230,7 +391,7 @@
           resultsList.innerHTML = '';
           if (data.length === 0) {
             resultsList.innerHTML =
-              '<p class="text-center text-slate-500 py-8">No permits returned for this range.</p>';
+              '<p class="text-center text-slate-500 py-6">No results returned.</p>';
           } else {
             data.forEach(function (row) {
               resultsList.appendChild(renderCard(row));
@@ -245,9 +406,11 @@
           resultsError.classList.remove('hidden');
           setStatus('idle');
         } finally {
-          runBtn.disabled = false;
+          updateSelectedUi();
         }
       });
+
+      loadPermits();
     })();
   </script>
 </body>

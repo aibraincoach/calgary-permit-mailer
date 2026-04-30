@@ -61,13 +61,13 @@ function defaultBackHtml() {
 </body></html>`;
 }
 
+const MAX_PIPELINE_PERMITS = 50;
+
 /**
- * @param {{ limit: number, days: number, send: boolean }} opts
- * @returns {Promise<Array<{ permitnum: string, contractorname: string, address: string, copy: string, postcardStatus: string }>>}
+ * @param {{ limit?: number, days?: number, send: boolean, permits?: object[] }} opts
+ * @returns {Promise<Array<{ permitnum: string, contractorname: string, address: string, copy: string, postcardStatus: string, workclassgroup?: string }>>}
  */
 async function runPipeline(opts) {
-  const limit = Math.max(1, Math.min(100, Number(opts.limit) || 5));
-  const days = Math.max(1, Math.min(30, Number(opts.days) || 14));
   const send = Boolean(opts.send);
 
   if (send && !recipientFromEnv()) {
@@ -76,7 +76,14 @@ async function runPipeline(opts) {
     );
   }
 
-  const permits = await fetchPermits({ limit, daysBack: days });
+  let permits;
+  if (Array.isArray(opts.permits) && opts.permits.length > 0) {
+    permits = opts.permits.slice(0, MAX_PIPELINE_PERMITS);
+  } else {
+    const limit = Math.max(1, Math.min(100, Number(opts.limit) || 5));
+    const days = Math.max(1, Math.min(30, Number(opts.days) || 14));
+    permits = await fetchPermits({ limit, daysBack: days });
+  }
   const from = senderFromEnv();
   const backHTML = defaultBackHtml();
   const size = process.env.POSTGRID_POSTCARD_SIZE || '6x4';
