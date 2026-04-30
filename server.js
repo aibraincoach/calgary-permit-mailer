@@ -4,6 +4,7 @@ const express = require('express');
 const path = require('path');
 const { fetchPermits } = require('./fetchPermits');
 const { runPipeline } = require('./pipeline');
+const { getPostcardPdfUrl } = require('./sendPostcard');
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
@@ -69,6 +70,30 @@ app.post('/run', async (req, res) => {
     console.error('/run error:', err);
     res.status(500).json({ error: 'Pipeline failed', detail: msg });
   }
+});
+
+app.get('/api/postcard-preview', async (req, res) => {
+  try {
+    const raw = req.query && req.query.id;
+    if (!raw || typeof raw !== 'string' || !String(raw).trim()) {
+      res.status(400).json({ error: 'Missing id' });
+      return;
+    }
+    const id = String(raw).trim();
+    const url = await getPostcardPdfUrl(id);
+    if (!url) {
+      res.status(404).json({ error: 'Preview not available' });
+      return;
+    }
+    res.json({ id, url });
+  } catch (err) {
+    console.error('GET /api/postcard-preview error:', err);
+    res.status(500).json({ error: 'Failed to load preview' });
+  }
+});
+
+app.get('/previews', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'previews.html'));
 });
 
 app.use(express.static(path.join(__dirname, 'public')));

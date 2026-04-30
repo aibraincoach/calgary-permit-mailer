@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Postcard previews · AI Brain Coach</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <link rel="stylesheet" href="/styles-list.css" />
+  <style>
+    .pv-page {
+      min-height: 100vh;
+      background: var(--surface-1, #f8f7f4);
+      color: var(--ink, #1a1a1a);
+    }
+    .pv-top {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--line, #e5e2dc);
+      background: var(--surface-2, #fff);
+    }
+    .pv-top h1 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin: 0 0 4px;
+    }
+    .pv-top p {
+      margin: 0;
+      font-size: 13px;
+      color: var(--muted, #6b6a64);
+    }
+    .pv-wrap {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 20px 16px 40px;
+    }
+    .pv-card {
+      margin-bottom: 16px;
+    }
+    .pv-cap {
+      font-size: 13px;
+      color: var(--muted, #6b6a64);
+      margin-bottom: 8px;
+      line-height: 1.4;
+    }
+    .pv-frame {
+      width: 100%;
+      height: 280px;
+      border: 1px solid var(--line, #e5e2dc);
+      border-radius: 8px;
+      background: #fff;
+      overflow: hidden;
+    }
+    .pv-frame iframe {
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
+    .pv-id {
+      font-size: 11px;
+      font-family: var(--font-mono, ui-monospace, monospace);
+      color: var(--muted-2, #9a9890);
+      margin-top: 8px;
+    }
+    .pv-err {
+      font-size: 13px;
+      color: var(--danger, #b42318);
+      padding: 12px;
+      background: var(--danger-soft, #fef3f2);
+      border-radius: 8px;
+      margin-bottom: 16px;
+    }
+  </style>
+</head>
+<body class="pv-page">
+  <header class="pv-top">
+    <h1>Postcard previews</h1>
+    <p>PDFs load from PostGrid via this app. Close the tab when done.</p>
+  </header>
+  <main class="pv-wrap" id="gallery" aria-live="polite"></main>
+  <script>
+    (function () {
+      var root = document.getElementById('gallery');
+      var params = new URLSearchParams(window.location.search);
+      var idsParam = params.get('ids') || '';
+      var ids = idsParam
+        .split(',')
+        .map(function (s) {
+          return s.trim();
+        })
+        .filter(Boolean)
+        .slice(0, 30);
+
+      var meta = {};
+      try {
+        meta = JSON.parse(sessionStorage.getItem('postcardPreviewMeta') || '{}');
+      } catch (e) {
+        meta = {};
+      }
+
+      function sleep(ms) {
+        return new Promise(function (r) {
+          setTimeout(r, ms);
+        });
+      }
+
+      function esc(s) {
+        return String(s)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
+      }
+
+      if (!ids.length) {
+        root.innerHTML = '<p class="pv-err">No postcard IDs in this link. Run the pipeline from the app and use “View all postcards”.</p>';
+        return;
+      }
+
+      async function loadAll() {
+        for (var i = 0; i < ids.length; i++) {
+          if (i > 0) await sleep(120);
+          var id = ids[i];
+          var m = meta[id] || {};
+          var cap =
+            ((m.contractorname || '').trim() || 'Contractor') +
+            (m.permitnum ? ' · ' + String(m.permitnum).trim() : '');
+
+          var card = document.createElement('div');
+          card.className = 'pv-card';
+          var capEl = document.createElement('div');
+          capEl.className = 'pv-cap';
+          capEl.textContent = cap;
+          var frame = document.createElement('div');
+          frame.className = 'pv-frame';
+          frame.innerHTML = '<p style="padding:12px;margin:0;color:var(--muted);font-size:13px;">Loading PDF…</p>';
+          var idEl = document.createElement('div');
+          idEl.className = 'pv-id';
+          idEl.textContent = 'PostGrid: ' + id;
+          card.appendChild(capEl);
+          card.appendChild(frame);
+          card.appendChild(idEl);
+          root.appendChild(card);
+
+          try {
+            var res = await fetch('/api/postcard-preview?id=' + encodeURIComponent(id));
+            var body = await res.json().catch(function () {
+              return null;
+            });
+            if (!res.ok || !body || !body.url) {
+              frame.innerHTML =
+                '<p class="pv-err" style="margin:0;border:0;background:transparent;padding:12px;">' +
+                esc((body && body.error) || 'Preview not available yet.') +
+                '</p>';
+              continue;
+            }
+            frame.innerHTML = '';
+            var iframe = document.createElement('iframe');
+            iframe.title = 'Postcard PDF · ' + id;
+            iframe.src = body.url;
+            iframe.setAttribute('loading', 'lazy');
+            frame.appendChild(iframe);
+          } catch (err) {
+            frame.innerHTML =
+              '<p class="pv-err" style="margin:0;border:0;background:transparent;padding:12px;">' +
+              esc(err.message || String(err)) +
+              '</p>';
+          }
+        }
+      }
+
+      loadAll();
+    })();
+  </script>
+</body>
+</html>

@@ -421,10 +421,12 @@
 .modal-row .status.error { background: var(--danger-soft); color: var(--danger); }
 
 .modal-foot {
-  display: flex; align-items: center; gap: 10px;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  flex-wrap: wrap;
   padding: 14px 22px;
   border-top: 1px solid var(--line);
   background: var(--surface-2);
 }
-.modal-foot .summary { flex: 1; font-size: 12.5px; color: var(--muted); }
+.modal-foot .summary { flex: 1; min-width: 140px; font-size: 12.5px; color: var(--muted); }
 .modal-foot .summary strong { color: var(--ink); font-weight: 600; }
+.modal-foot-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
